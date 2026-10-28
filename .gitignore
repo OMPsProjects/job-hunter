@@ -1,0 +1,32 @@
+# personal - never commit (scripts/check_private.py enforces this too)
+profile.yaml
+profile.yaml.bak
+candidate.yaml
+candidate/
+answers.yaml
+applications.csv
+applications/
+companies.yaml
+results/
+resumes/
+.env
+.env.*
+*.pdf
+*.docx
+*.db
+*.pkl
+evals/mock_ats/state.json
+
+# python / tooling
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/

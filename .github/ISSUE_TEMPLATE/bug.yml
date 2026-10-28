@@ -1,0 +1,19 @@
+name: Bug
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Command and output
+      description: Never paste your profile.yaml, candidate.yaml, answers.yaml or resume. Use the fictional examples to reproduce if you can.
+  - type: input
+    id: env
+    attributes:
+      label: OS, Python version, job-hunter version

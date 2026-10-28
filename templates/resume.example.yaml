@@ -1,0 +1,38 @@
+# A tailored resume, as YAML. The skill writes one of these per job, then:
+#   python job_hunter.py lint   applications/<folder>/resume.yaml
+#   python job_hunter.py render applications/<folder>/resume.yaml --pages 2
+# Fictional example.
+
+name: Jordan Rivera
+contact: [Chicago, IL, jordan.rivera@example.com, (312) 555-0199, linkedin.com/in/jordan-rivera-example]
+
+summary: >
+  Commercial lending underwriter with 9 years at regional banks, the last four running credit on
+  a $400M commercial real estate book. Writes the credit memo, sizes the loan, and defends it at
+  committee.
+
+experience:
+  - company: Lakeshore Community Bank
+    title: Senior Credit Underwriter
+    location: Chicago, IL
+    dates: 2021 - Present
+    bullets:
+      - Underwrote 60+ CRE loans a year across multifamily, industrial and retail, from $2M to $35M
+      - Sized loans on DSCR and debt yield and set reserves, guaranties and covenants with relationship managers
+      - Reviewed appraisals, environmental and engineering reports and flagged issues before committee
+  - company: Prairie State Bank
+    title: Credit Analyst
+    location: Naperville, IL
+    dates: 2016 - 2021
+    bullets:
+      - Spread borrower and guarantor financials, including personal tax returns, for C&I and CRE requests
+      - Built an Excel rent-roll model the team used for every multifamily deal
+
+education:
+  - school: University of Illinois
+    degree: B.S. Finance
+    dates: "2016"
+
+skills:
+  Credit: DSCR and debt yield sizing, cash flow analysis, loan structuring, covenant design
+  Tools: Excel, Argus, SQL

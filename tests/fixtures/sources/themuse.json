@@ -1,0 +1,130 @@
+{
+ "page": 0,
+ "page_count": 708,
+ "items_per_page": 20,
+ "took": 5,
+ "timed_out": false,
+ "total": 14146,
+ "results": [
+  {
+   "contents": "<p><strong>About the Role</strong><br><br>Uber Freight Marketplace is building the next generation of logistics technology by leveraging Uber's proven marketplace playbook to freight. As part of a small, high-impact team, you'll help bring expertise from Uber's mobility and delivery marketplaces into a rapidly evolving industry, developing pricing, matching, recommendation, and optimization systems that will disrupt the freight industry ($1T TAM). Uber Freight is at a very early stage, with just 0.4% of the pie now, and it's a rare opportunity to solve challenging marketplace problems with AI/ML and marketplace optimization while shaping how the freight industry transforms.<br><br>We are looking for a highly motivated Machine Learning Engineer to join Uber's Marketplace team to modernize the Uber Freight marketplace team. It is a fascinating area with challenges in predictive modeling, causal inference, constrained optimization, reinforcement learning, marketplace design, etc. The business is about to elevate and this role has a huge growing opportunity.<br><br><strong>What You'll Do</strong><br><br>This role requires end to end ownership for the ML models in UF marketplace (cost prediction, booking probability, demand elasticity, etc.). While your job is mostly about model development, you will work with backend engineers together to put them in production and make sure they work as expected.<br><br><strong>Basic Qualifications</strong><br><ul><li>6+ years of experience developing ML models to solve business problem.</li><li>Bachelor's degree in Computer Science, Computer Engineering, or related fields.</li><li>Familiar with modern AI/ML frameworks (e.g., PyTorch).</li></ul><br> <strong>Preferred Qualifications</strong><br><ul><li>Product experience will be a big plus for this role. Adaptive development of ML models to the business context is critical. </li><li>Previous experience with state-of-the-art marketplace technology is preferred.</li><li>Experience with causal inference and constrained optimization</li></ul> <br>For Chicago, IL-based roles: The base salary range for this role is USD $209,000 per year - USD $232,000 per year.<br> <br>For New York City, NY-based roles: The base salary range for this role is USD $232,000 per year - USD $258,000 per year.<br> <br>For San Francisco, CA-based roles: The base salary range for this role is USD $232,000 per year - USD $258,000 per year.<br> <br>For Seattle, WA-based roles: The base salary range for this role is USD $232,000 per year - USD $258,000 per year.<br> <br>For Sunnyvale, CA-based roles: The base salary range for this role is USD $232,000 per year - USD $258,000 per year.<br> <br>For all US locations, you will be eligible to participate in Uber's bonus program, and may be offered an equity award &amp; other types of comp. All full-time employees are eligible to participate in a 401(k) plan. You will also be eligible for various benefits.<br> <br><strong>Ready to Ride?</strong><br> <br>This isn't the kind of place where you follow a playbook - it's where you help write one. If you're driven by impact, energized by challenge, and ready to shape how the world moves - we'd love to hear from you.<br> <br>You may be eligible for bonuses, equity, and other compensation, as well as a range of benefits. Explore our benefits. <br> <br>Offices remain key to collaboration and Uber's culture. Unless approved for full remote work, employees must spend at least 50% of their time in-office. Some roles, like those at greenlight hubs, require full-time in-office presence. Ask your Recruiter for details about this role's requirements.<br> <br>Uber is proud to be an Equal Opportunity employer. All qualified applicants will receive consideration for employment without regard to sex, gender identity, sexual orientation, race, color, religion, national origin, disability, protected Veteran status, age, or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you have a disability or special need that requires accommodation, please let us know by completing this form.</p>",
+   "name": "Staff Machine Learning Engineer",
+   "type": "external",
+   "publication_date": "2026-10-08T23:00:30Z",
+   "short_name": "staff-machine-learning-engineer-9c8c67",
+   "model_type": "jobs",
+   "id": 22017894,
+   "locations": [
+    {
+     "name": "Chicago, IL"
+    },
+    {
+     "name": "New York, NY"
+    },
+    {
+     "name": "San Francisco, CA"
+    },
+    {
+     "name": "Seattle, WA"
+    },
+    {
+     "name": "Sunnyvale, CA"
+    }
+   ],
+   "categories": [
+    {
+     "name": "Education"
+    }
+   ],
+   "levels": [
+    {
+     "name": "Senior Level",
+     "short_name": "senior"
+    }
+   ],
+   "tags": [],
+   "refs": {
+    "landing_page": "https://www.themuse.com/jobs/uber/staff-machine-learning-engineer-9c8c67"
+   },
+   "company": {
+    "id": 61,
+    "short_name": "uber",
+    "name": "Uber"
+   }
+  },
+  {
+   "contents": "<p><strong>About the role and team</strong><br><br>Uber has evolved from a ride-hailing service into an all-in-one platform, connecting users globally through various on-demand offerings across UberX and UberEats. To unite this ecosystem, we introduced Uber One-a paid membership program designed to elevate user experiences with priority service and exclusive perks. Under one unified membership, members unlock enhanced pricing, upgraded rides, dedicated customer support, premium partner benefits, and elevated service quality.<br><br>With more than 50 million global Uber One members driving over half of our total company revenue, the program is a critical engine for company-wide growth across our core offerings while shaping how users interact with our expanding ecosystem and new company big bets. Join us as we drive Uber's growth and shape expansion into new verticals.<br><br>In this role on the Membership team, you will help shape the future of the program by architecting next-generation member experiences and benefits in close partnership with cross-functional teams. You will oversee our platform architecture and design highly reliable, scalable systems that power new initiatives across both UberEats and UberX. If you excel at tackling complex technical challenges, crafting impactful products, and driving key business outcomes around conversion and engagement,, the Membership team is the perfect fit for you.<br><br><strong>What you'll do</strong><br><ul><li>Identify new impactful opportunities to evolve the Uber One program across UberEats and UberX </li><li>Collaborate with talented engineers, PMs, Data Science and Designers from across the company to design, build, and optimize products used by millions of members globally</li><li>Architect robust, highly available, and scalable systems designed to resolve ambiguous technical challenges to serve millions of users. Align the org on complex tradeoffs between various different technical designs and solutions</li><li>Drive technical strategy for platform evolution, microservices architecture, and API design to simplify future program needs</li><li>Cultivate engineering culture and technical excellence to drive up engineering velocity and quality across the team</li></ul><br><strong>Basic Qualifications</strong><br><ul><li>5+ (L5A) years work experience in software engineering building large scale systems</li><li>Bachelor's (or higher) in Computer Science, Engineering, or related field.</li><li>Extensive hands-on Android development experience, including proficiency in Java and/or Kotlin programming and code reviews</li><li>Experience in developing mobile apps used by hundreds of millions of users globally. Strong focus on delivering high-quality mobile UI experiences and feature development</li><li>Deep understanding of software engineering fundamentals, including algorithms, data structures, distributed systems, system design, and architecture.</li><li>Proven experience in identifying architectural gaps and creating org-wide frameworks that improve developer velocity and reduce systemic technical debt.</li><li>Proven ability to lead technical projects end-to-end through all lifecycle stages, from inception through design through global deployment and productionization.</li><li>Expertise in defining standards for testing, monitoring, and alerting systems, while overseeing the execution of complex incident management at an organizational level.</li><li>Demonstrated leadership in building relationships with internal stakeholders and external partners to rally around a technical vision.</li></ul><br><strong>Preferred Qualifications</strong><br><ul><li><strong>Marketplace experience</strong><strong> - Uber's business model is marketplace heavy and prior experience creating 0 to 1 features and optimizing marketplaces is preferred. </strong><strong>Experience in real-time marketplace platforms requiring high consistency and global reliability.</strong></li><li><strong>Impact Mindset</strong> - (1) Ability to navigate complex org and company business needs (2) Ability to identify consumer needs through user research and data understand work (3) Bringing those together to build products and systems that bring value to our customers and deliver company impact</li><li><strong>Strong Cross Company Technical Collaboration</strong> - (1) Strong ability to collaborate and communicate technically with multiple teams across the company (2) Strong ability to deep dive into complex technical systems owned by other organizations (3) Create clean technical solutions that factor in complexities across multiple systems &amp; ultimately solve for multiple team goals</li></ul> <br>For New York City, NY-based roles: The base salary range for this role is USD $202,000 per year - USD $224,000 per year.<br> <br>For San Francisco, CA-based roles: The base salary range for this role is USD $202,000 per year - USD $224,000 per year.<br> <br>For Sunnyvale, CA-based roles: The base salary range for this role is USD $202,000 per year - USD $224,000 per year.<br> <br>For all US locations, you will be eligible to participate in Uber's bonus program, and may be offered an equity award &amp; other types of comp. All full-time employees are eligible to participate in a 401(k) plan. You will also be eligible for various benefits.<br> <br><strong>Ready to Ride?</strong><br> <br>This isn't the kind of place where you follow a playbook - it's where you help write one. If you're driven by impact, energized by challenge, and ready to shape how the world moves - we'd love to hear from you.<br> <br>You may be eligible for bonuses, equity, and other compensation, as well as a range of benefits. Explore our benefits. <br> <br>Offices remain key to collaboration and Uber's culture. Unless approved for full remote work, employees must spend at least 50% of their time in-office. Some roles, like those at greenlight hubs, require full-time in-office presence. Ask your Recruiter for details about this role's requirements.<br> <br>Uber is proud to be an Equal Opportunity employer. All qualified applicants will receive consideration for employment without regard to sex, gender identity, sexual orientation, race, color, religion, national origin, disability, protected Veteran status, age, or any other characteristic protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. If you have a disability or special need that requires accommodation, please let us know by completing this form.</p>",
+   "name": "Sr Software Engineer - Android",
+   "type": "external",
+   "publication_date": "2026-10-01T22:29:21Z",
+   "short_name": "sr-software-engineer-android-9a370a",
+   "model_type": "jobs",
+   "id": 22171959,
+   "locations": [
+    {
+     "name": "New York, NY"
+    },
+    {
+     "name": "San Francisco, CA"
+    },
+    {
+     "name": "Sunnyvale, CA"
+    }
+   ],
+   "categories": [
+    {
+     "name": "Software Engineering"
+    }
+   ],
+   "levels": [
+    {
+     "name": "Senior Level",
+     "short_name": "senior"
+    }
+   ],
+   "tags": [],
+   "refs": {
+    "landing_page": "https://www.themuse.com/jobs/uber/sr-software-engineer-android-9a370a"
+   },
+   "company": {
+    "id": 61,
+    "short_name": "uber",
+    "name": "Uber"
+   }
+  },
+  {
+   "contents": "<div><p><a href=\"https://www.avalabs.org/gh-applicant-notice\" rel=\"noopener noreferrer\">Applicant Privacy Notice</a></p>\n<p>Looking to join a world-class blockchain development team? Ava Labs makes it simple to deploy high-performance solutions for Web3, led by innovations on Avalanche. The company was founded by Cornell computer scientists, who partnered with Wall Street veterans and early Web3 leaders to execute a promising vision for redefining the way people build permissionless networks. Ava Labs is redefining the way people create value with Web3. Join us as we empower people to easily and freely digitize all the world\u2019s assets on one open, programmable blockchain platform.</p></div>\n\n<div>\n<p>Join the AvaCloud team at Ava Labs as a <strong>Senior Technical Product Manager</strong>. AvaCloud is revolutionizing how businesses launch, manage, and scale using Avalanche L1s and web3 technologies, making blockchain simple, powerful, and accessible. We've already empowered leading organizations like <strong>J.P. Morgan Kinexys, FIFE, and Nexon\u2019s MapleStory</strong> to bring innovative products to market, and we're just getting started.</p>\n<p>In this pivotal role, you will be instrumental in shaping the strategy, execution, and growth of the AvaCloud product suite. This involves navigating the rapidly evolving blockchain ecosystem to identify trends and opportunities that AvaCloud can address. Success requires confronting challenges directly, continuously seeking feedback for personal and product improvement, and motivating your team with excitement and engagement around the problems being solved.</p>\n<h4><strong>WHAT YOU WILL DO</strong></h4>\n<ul>\n<li>Drive the strategy, design and execution of products within the AvaCloud suite of solutions.</li>\n<li>Collaborate with engineering, business development, marketing to establish a shared understanding of the product vision with impactful business outcomes.</li>\n<li>Research and dissect product markets and customers</li>\n<li>Identify market opportunities to build product vision and strategies</li>\n<li>Work closely with engineers and other cross-functional teams to manage product milestones and delivery</li>\n<li>Execute efficiently in a fast-paced, fluid start-up environment where change is constant and creativity is a must</li>\n</ul>\n<h4><strong>WHAT YOU WILL BRING</strong></h4>\n<ul>\n<li>7+ years of technical product management in fintech, blockchain or cryptocurrency businesses</li>\n<li>2+ years managing day-to-day technical/design direction for large rapidly scaling systems and platforms</li>\n<li>A deep understanding of web3 infrastructure, explorers, bridges, defi platforms and traditional payments&nbsp;</li>\n<li>Experience driving B2B and or B2B2C software products and/or features through the full product life cycle</li>\n<li>Experience creating strategic roadmaps with internal collaborators (engineering, ux/ui, sales, customer support, finance and/or marketing)</li>\n<li>Experience leading product vision, go-to-market strategy, and design discussions</li>\n<li>Strong ability to interpret research/data and dissect industry trends</li>\n<li>Can easily translate technical concepts into non-technical terms and vice versa</li>\n<li>Experience working with and/or building developer tools including APIs and SDKs</li>\n<li>Management consulting background is a plus</li>\n</ul>\n<p><strong>Nice to Haves</strong></p>\n<ul>\n<li>Technical understanding of blockchains</li>\n<li>Engineering experience</li>\n<li>Start-up experience</li>\n</ul>\n</div>\n\n<div>\n<p><strong>Salary Range:</strong> $155,904 to $194,880</p>\n<p>(<em>**This is not a guarantee of compensation or salary, a final offer amount may vary based on factors including but not limited to experience and geographic location. NYC metro candidates are required to be in office 2-3x/week, with exceptions.)</em></p>\n<p><span>#LI-Remote #LI-RP1</span></p>\n</div>\n\n<div><p><strong>WHY AVA LABS?</strong></p>\n<p>If you've ever thought about joining an early stage Web3 company - this is it! We're a global, world-class team of experts in computer science, economics, finance, marketing, and law with offices in New York City and Miami. We're highly passionate about Web3 and redefining the way people build and use finance and decentralized applications of all kinds. The company received early-stage funding from Andreessen Horowitz, Initialized Capital, and Polychain Capital, with angel investments from Balaji Srinivasan and Naval Ravikant. Join us and be a pioneer in a new technology that will have implications across a range of verticals such as finance, gaming, investing, collectibles, among many others.</p>\n<p>Ava Labs is committed to diversity in the workplace and we\u2019re proud to be an Equal Opportunity Employer. We do not hire on basis of race, color, religion, creed, gender, national origin, citizenship, age, disability, veteran status, marital status, pregnancy, parental status, sex, gender expression or identity, sexual orientation, or any other basis protected by local, state or federal law. All employment is decided on the basis of qualifications, merit, and business need.</p></div>",
+   "name": " Senior Technical Product Manager - AvaCloud",
+   "type": "external",
+   "publication_date": "2025-11-13T23:31:35Z",
+   "short_name": "senior-technical-product-manager-avacloud",
+   "model_type": "jobs",
+   "id": 20693577,
+   "locations": [
+    {
+     "name": "Flexible / Remote"
+    },
+    {
+     "name": "New York, NY"
+    }
+   ],
+   "categories": [],
+   "levels": [
+    {
+     "name": "Senior Level",
+     "short_name": "senior"
+    }
+   ],
+   "tags": [],
+   "refs": {
+    "landing_page": "https://www.themuse.com/jobs/avalabs/senior-technical-product-manager-avacloud"
+   },
+   "company": {
+    "id": 15000201,
+    "short_name": "avalabs",
+    "name": "Ava Labs"
+   }
+  }
+ ],
+ "aggregations": {}
+}

@@ -1,0 +1,19 @@
+{
+ "results": [
+  {
+   "id": "1",
+   "title": "Credit Risk Manager",
+   "company": {
+    "display_name": "Acme Bank"
+   },
+   "location": {
+    "display_name": "Chicago, Cook County"
+   },
+   "description": "Manage <b>credit</b> risk...",
+   "redirect_url": "https://www.adzuna.com/land/ad/1",
+   "created": "2026-10-20T10:00:00Z",
+   "salary_min": 120000,
+   "salary_max": 150000
+  }
+ ]
+}

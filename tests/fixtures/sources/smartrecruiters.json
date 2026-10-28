@@ -1,0 +1,428 @@
+{
+ "offset": 0,
+ "limit": 3,
+ "totalFound": 5029,
+ "content": [
+  {
+   "id": "744000158371579",
+   "name": "Associate/Envir. Health & Safety Engineer  ",
+   "uuid": "91b67059-60d9-46ff-8b8a-d00c1d149886",
+   "jobAdId": "34de2025-6c0a-4019-bcdd-9f1cecf175c3",
+   "defaultJobAd": true,
+   "refNumber": "REF292021O",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-28T19:13:13.442Z",
+   "location": {
+    "city": "Roseville",
+    "region": "CA",
+    "country": "us",
+    "address": "7501 Foothills Boulevard",
+    "postalCode": "95747",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "38.7772054",
+    "longitude": "-121.3105418",
+    "fullLocation": "Roseville, CA, United States"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "entry_level",
+    "label": "Entry Level"
+   },
+   "customField": [
+    {
+     "fieldId": "5abe2a4ab60a5e486a2d9b1d",
+     "fieldLabel": "Contract type",
+     "valueId": "1e46492b-d24f-460c-b095-38cf08a778d8",
+     "valueLabel": "Unlimited"
+    },
+    {
+     "fieldId": "5abe28e96d8bc56863dd9746",
+     "fieldLabel": "Tariff Area",
+     "valueId": "82f1dd4b-de9d-4134-9f1a-8d315be380ae",
+     "valueLabel": "United States Local Grades"
+    },
+    {
+     "fieldId": "586a997ee4b05fd937b86098",
+     "fieldLabel": "Legal Entity(acronym)",
+     "valueId": "78cee85f-92e3-4bab-bed3-46766df01752",
+     "valueLabel": "RBUC"
+    },
+    {
+     "fieldId": "586a99b5e4b0daa006ae1079",
+     "fieldLabel": "Working Location",
+     "valueId": "d4956484-2ebe-4c0a-a7f1-62b033b6c5b9",
+     "valueLabel": "Roseville, CA"
+    },
+    {
+     "fieldId": "5abe295a6d8bc56863dd9747",
+     "fieldLabel": "Global Salary Level",
+     "valueId": "4319a4d2-6690-4a34-ac0f-9d8c126f1af2",
+     "valueLabel": "Junior/ Lower Tariff"
+    },
+    {
+     "fieldId": "69ca83a2489188782a1e9f87",
+     "fieldLabel": "Direct Or Indirect",
+     "valueId": "1aefbf4c-c10a-422e-a975-a504a7117792",
+     "valueLabel": "Indirect"
+    },
+    {
+     "fieldId": "5abe29f9b60a5e486a2d9b1c",
+     "fieldLabel": "Working hours",
+     "valueId": "60756b3e-dbab-4353-ac3a-0064d2bb27d8",
+     "valueLabel": "Full-time"
+    },
+    {
+     "fieldId": "586a9995e4b0daa006ae1078",
+     "fieldLabel": "Legal Entity",
+     "valueId": "58012086-77ba-4a8c-a4af-8e852222df41",
+     "valueLabel": "Robert Bosch Semiconductor LLC"
+    },
+    {
+     "fieldId": "691cf1c93001c782b9560ab7",
+     "fieldLabel": "Division full name",
+     "valueId": "acbd0fb4-afd1-49f8-8abc-ec454a4e33bd",
+     "valueLabel": "Mobility Electronics"
+    },
+    {
+     "fieldId": "5abe27936d8bc56863dd9745",
+     "fieldLabel": "Position type",
+     "valueId": "c7b4da31-6f38-405a-b2e8-08a76e3c3f2c",
+     "valueLabel": "Professional"
+    },
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "us",
+     "valueLabel": "United States"
+    },
+    {
+     "fieldId": "586a971ee4b0daa006ae1077",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Bosch Group"
+    },
+    {
+     "fieldId": "586a996ce4b05fd937b86097",
+     "fieldLabel": "Working Country",
+     "valueId": "US",
+     "valueLabel": "United States"
+    },
+    {
+     "fieldId": "586a9b22e4b05fd937b8609a",
+     "fieldLabel": "Local Grade",
+     "valueId": "US_E2",
+     "valueLabel": "US_E2"
+    },
+    {
+     "fieldId": "586a99a5e4b05fd937b86099",
+     "fieldLabel": "Division",
+     "valueId": "AE",
+     "valueLabel": "ME"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158371579",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  },
+  {
+   "id": "744000158365796",
+   "name": "ASSISTENTE ADMINISTRATIVO JR - 024",
+   "uuid": "18b3c8b2-19c2-422b-a97c-2c1646332501",
+   "jobAdId": "d5782d46-6523-480d-b214-49dab549371b",
+   "defaultJobAd": true,
+   "refNumber": "REF299671Z",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-28T18:44:46.183Z",
+   "location": {
+    "city": "Campinas",
+    "region": "SP",
+    "country": "br",
+    "address": "Avenida Robert Bosch",
+    "postalCode": "13064-765",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "-22.8992722",
+    "longitude": "-47.1170748",
+    "fullLocation": "Campinas, SP, Brazil"
+   },
+   "industry": {
+    "id": "it_and_services",
+    "label": "Information Technology And Services"
+   },
+   "department": {},
+   "function": {
+    "id": "analyst",
+    "label": "Analyst"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "customField": [
+    {
+     "fieldId": "5abe2a4ab60a5e486a2d9b1d",
+     "fieldLabel": "Contract type",
+     "valueId": "1e46492b-d24f-460c-b095-38cf08a778d8",
+     "valueLabel": "Unlimited"
+    },
+    {
+     "fieldId": "5abe28e96d8bc56863dd9746",
+     "fieldLabel": "Tariff Area",
+     "valueId": "89e3308f-77ac-4db2-9957-49b221a76b0f",
+     "valueLabel": "Brazil Local Grades"
+    },
+    {
+     "fieldId": "586a997ee4b05fd937b86098",
+     "fieldLabel": "Legal Entity(acronym)",
+     "valueId": "956f7d16-3d45-452b-9c99-32e1a51ff430",
+     "valueLabel": "BISB"
+    },
+    {
+     "fieldId": "586a99b5e4b0daa006ae1079",
+     "fieldLabel": "Working Location",
+     "valueId": "77146c8c-c6c2-467a-b9d9-8d536589b134",
+     "valueLabel": "Campinas"
+    },
+    {
+     "fieldId": "5abe295a6d8bc56863dd9747",
+     "fieldLabel": "Global Salary Level",
+     "valueId": "427b1359-5057-4375-a2ae-6c649782296d",
+     "valueLabel": "Experienced/ Middle Tariff"
+    },
+    {
+     "fieldId": "69ca83a2489188782a1e9f87",
+     "fieldLabel": "Direct Or Indirect",
+     "valueId": "0d8b2ae9-fc67-447b-9165-201f59f71e90",
+     "valueLabel": "Direct"
+    },
+    {
+     "fieldId": "5abe29f9b60a5e486a2d9b1c",
+     "fieldLabel": "Working hours",
+     "valueId": "60756b3e-dbab-4353-ac3a-0064d2bb27d8",
+     "valueLabel": "Full-time"
+    },
+    {
+     "fieldId": "586a9995e4b0daa006ae1078",
+     "fieldLabel": "Legal Entity",
+     "valueId": "98b944c0-986e-46bb-a3cc-0b816ecece25",
+     "valueLabel": "Bosch Solu\u00e7\u00f5es Integradas"
+    },
+    {
+     "fieldId": "691cf1c93001c782b9560ab7",
+     "fieldLabel": "Division full name",
+     "valueId": "7fc42116-9733-43a7-b536-d2c5f628f9d5",
+     "valueLabel": "BISB"
+    },
+    {
+     "fieldId": "5abe27936d8bc56863dd9745",
+     "fieldLabel": "Position type",
+     "valueId": "c7b4da31-6f38-405a-b2e8-08a76e3c3f2c",
+     "valueLabel": "Professional"
+    },
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "br",
+     "valueLabel": "Brazil"
+    },
+    {
+     "fieldId": "586a971ee4b0daa006ae1077",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Bosch Group"
+    },
+    {
+     "fieldId": "586a996ce4b05fd937b86097",
+     "fieldLabel": "Working Country",
+     "valueId": "38ffb1d7-cfdc-48e1-a641-1e66623f5afb",
+     "valueLabel": "Brazil"
+    },
+    {
+     "fieldId": "586a9b22e4b05fd937b8609a",
+     "fieldLabel": "Local Grade",
+     "valueId": "346fb6b3-0c79-4432-a690-bc1af0bf16a2",
+     "valueLabel": "BR_MN"
+    },
+    {
+     "fieldId": "586a99a5e4b05fd937b86099",
+     "fieldLabel": "Division",
+     "valueId": "6a1a3850-e158-4398-811b-d0398e93f673",
+     "valueLabel": "BISB"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158365796",
+   "language": {
+    "code": "pt-BR",
+    "label": "Portuguese (Brazil)",
+    "labelNative": "portugu\u00eas (Brasil)"
+   }
+  },
+  {
+   "id": "744000158365920",
+   "name": "ANALISTA ADMINISTRATIVO JR - 023",
+   "uuid": "74d78b90-f149-4822-80f4-650411db3f43",
+   "jobAdId": "aad391b1-c8a2-42a3-8c57-c5520a4f2d77",
+   "defaultJobAd": true,
+   "refNumber": "REF299670N",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-28T18:43:03.923Z",
+   "location": {
+    "city": "CAMPINAS",
+    "region": "SAO PAULO",
+    "country": "br",
+    "address": "Rodovia Rodovia Anhanguera, Km 98",
+    "postalCode": "13065-900",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "CAMPINAS, SAO PAULO, Brazil"
+   },
+   "industry": {
+    "id": "it_and_services",
+    "label": "Information Technology And Services"
+   },
+   "department": {},
+   "function": {
+    "id": "analyst",
+    "label": "Analyst"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "customField": [
+    {
+     "fieldId": "5abe2a4ab60a5e486a2d9b1d",
+     "fieldLabel": "Contract type",
+     "valueId": "1e46492b-d24f-460c-b095-38cf08a778d8",
+     "valueLabel": "Unlimited"
+    },
+    {
+     "fieldId": "5abe28e96d8bc56863dd9746",
+     "fieldLabel": "Tariff Area",
+     "valueId": "89e3308f-77ac-4db2-9957-49b221a76b0f",
+     "valueLabel": "Brazil Local Grades"
+    },
+    {
+     "fieldId": "586a997ee4b05fd937b86098",
+     "fieldLabel": "Legal Entity(acronym)",
+     "valueId": "956f7d16-3d45-452b-9c99-32e1a51ff430",
+     "valueLabel": "BISB"
+    },
+    {
+     "fieldId": "586a99b5e4b0daa006ae1079",
+     "fieldLabel": "Working Location",
+     "valueId": "77146c8c-c6c2-467a-b9d9-8d536589b134",
+     "valueLabel": "Campinas"
+    },
+    {
+     "fieldId": "5abe295a6d8bc56863dd9747",
+     "fieldLabel": "Global Salary Level",
+     "valueId": "427b1359-5057-4375-a2ae-6c649782296d",
+     "valueLabel": "Experienced/ Middle Tariff"
+    },
+    {
+     "fieldId": "69ca83a2489188782a1e9f87",
+     "fieldLabel": "Direct Or Indirect",
+     "valueId": "0d8b2ae9-fc67-447b-9165-201f59f71e90",
+     "valueLabel": "Direct"
+    },
+    {
+     "fieldId": "5abe29f9b60a5e486a2d9b1c",
+     "fieldLabel": "Working hours",
+     "valueId": "60756b3e-dbab-4353-ac3a-0064d2bb27d8",
+     "valueLabel": "Full-time"
+    },
+    {
+     "fieldId": "586a9995e4b0daa006ae1078",
+     "fieldLabel": "Legal Entity",
+     "valueId": "98b944c0-986e-46bb-a3cc-0b816ecece25",
+     "valueLabel": "Bosch Solu\u00e7\u00f5es Integradas"
+    },
+    {
+     "fieldId": "691cf1c93001c782b9560ab7",
+     "fieldLabel": "Division full name",
+     "valueId": "7fc42116-9733-43a7-b536-d2c5f628f9d5",
+     "valueLabel": "BISB"
+    },
+    {
+     "fieldId": "5abe27936d8bc56863dd9745",
+     "fieldLabel": "Position type",
+     "valueId": "c7b4da31-6f38-405a-b2e8-08a76e3c3f2c",
+     "valueLabel": "Professional"
+    },
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "br",
+     "valueLabel": "Brazil"
+    },
+    {
+     "fieldId": "586a971ee4b0daa006ae1077",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Bosch Group"
+    },
+    {
+     "fieldId": "586a996ce4b05fd937b86097",
+     "fieldLabel": "Working Country",
+     "valueId": "38ffb1d7-cfdc-48e1-a641-1e66623f5afb",
+     "valueLabel": "Brazil"
+    },
+    {
+     "fieldId": "586a9b22e4b05fd937b8609a",
+     "fieldLabel": "Local Grade",
+     "valueId": "346fb6b3-0c79-4432-a690-bc1af0bf16a2",
+     "valueLabel": "BR_MN"
+    },
+    {
+     "fieldId": "586a99a5e4b05fd937b86099",
+     "fieldLabel": "Division",
+     "valueId": "6a1a3850-e158-4398-811b-d0398e93f673",
+     "valueLabel": "BISB"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158365920",
+   "language": {
+    "code": "pt-BR",
+    "label": "Portuguese (Brazil)",
+    "labelNative": "portugu\u00eas (Brasil)"
+   }
+  }
+ ]
+}

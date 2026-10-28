@@ -1,0 +1,9 @@
+# Exact versions the test suite last passed with on Python 3.10 and 3.13.
+#   pip install -e . -c constraints.txt
+python-jobspy==1.4.1
+pandas==2.3.3
+numpy==2.2.6
+PyYAML==6.0.3
+reportlab==5.1.0
+pypdf==6.21.4
+python-docx==1.2.0

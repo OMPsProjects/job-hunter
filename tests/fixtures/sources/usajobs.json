@@ -1,0 +1,29 @@
+{
+ "SearchResult": {
+  "SearchResultItems": [
+   {
+    "MatchedObjectDescriptor": {
+     "PositionTitle": "Supervisory Credit Analyst",
+     "OrganizationName": "Department of Example",
+     "PositionLocationDisplay": "Washington, District of Columbia",
+     "PositionURI": "https://www.usajobs.gov/job/123",
+     "PublicationStartDate": "2026-10-21",
+     "ApplicationCloseDate": "2026-11-21",
+     "PositionRemuneration": [
+      {
+       "MinimumRange": "120000",
+       "MaximumRange": "155000",
+       "RateIntervalCode": "PA"
+      }
+     ],
+     "QualificationSummary": "Specialized experience in credit analysis.",
+     "UserArea": {
+      "Details": {
+       "JobSummary": "Lead credit reviews."
+      }
+     }
+    }
+   }
+  ]
+ }
+}

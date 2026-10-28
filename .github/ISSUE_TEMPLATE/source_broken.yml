@@ -1,0 +1,22 @@
+name: A job source stopped working
+description: A board or career site returns nothing, errors, or wrong data
+labels: [source-broken]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Which source?
+      placeholder: e.g. himalayas, jobspy (indeed), company_feeds (workday)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Paste the `!` lines from the run and the output of `job-hunter health`. Remove anything personal first.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: job-hunter version (`job-hunter --version`)

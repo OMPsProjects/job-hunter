@@ -1,0 +1,16 @@
+{
+ "results": [
+  {
+   "shortcode": "AB12CD",
+   "title": "Credit Analyst",
+   "remote": false,
+   "location": {
+    "city": "Chicago",
+    "region": "Illinois",
+    "country": "United States"
+   },
+   "published": "2026-10-19"
+  }
+ ],
+ "nextPage": null
+}

@@ -1,0 +1,189 @@
+# profile.example.yaml - copy to profile.yaml and edit (or let the Claude skill build it from
+# your resume). profile.yaml is gitignored, so your settings never get committed.
+# This example is a commercial real estate credit search; every section works for any field.
+#
+# Check it without scraping:   python job_hunter.py check
+
+output_dir: results            # where CSVs land (relative to where you run the script)
+
+search:
+  locations:                   # each title is searched in each location (plus one remote pass)
+    - Chicago, IL
+    - New York, NY
+  include_remote: true
+  results_per_search: 25       # per title, per location, per site
+  hours_old: 168               # only postings from the last 7 days
+  # Scraped boards (via python-jobspy). Only indeed is on by default.
+  #   linkedin: works, but LinkedIn's terms forbid automated access; it rate-limits and may restrict
+  #             your account. Add it only if you accept that.
+  #   google, glassdoor, zip_recruiter: blocked or empty in late 2026; add them to try.
+  sites: [indeed]
+  pause_seconds: 2             # LinkedIn rate-limits (HTTP 429) without a pause
+
+# Job board APIs. true / false, or "auto" = on when the board's free API key is in your environment.
+sources:
+  jobspy: true                 # the sites above
+  remotive: true               # remote jobs, no key
+  himalayas: true              # remote jobs, no key
+  remoteok: true               # remote jobs, no key
+  themuse: true                # no key
+  arbeitnow: false             # no key, mostly Europe
+  adzuna: auto                 # ADZUNA_APP_ID + ADZUNA_APP_KEY      (developer.adzuna.com)
+  usajobs: auto                # USAJOBS_API_KEY + USAJOBS_EMAIL      (developer.usajobs.gov)
+  jooble: auto                 # JOOBLE_API_KEY                       (jooble.org/api/about)
+  company_feeds: true          # the company_feeds list below
+
+# Opt-in: boards that block scripts. The Claude skill searches these in your browser when you
+# ask it to. Easier: `job-hunter boards add URL`, which keeps them in companies.yaml.
+browse_boards: []
+#  - {name: SelectLeaders, url: "https://www.selectleaders.com"}        # CRE
+#  - {name: eFinancialCareers, url: "https://www.efinancialcareers.com"} # finance
+#  - {name: Wellfound, url: "https://wellfound.com/jobs"}               # startups
+#  - {name: Built In, url: "https://builtin.com/jobs"}                  # tech
+
+# Jobs are kept only if their location matches one of these (lowercase regex), or is remote,
+# or (if keep_unspecified_locations) has no location. Order matters: first match wins.
+regions:
+  - key: chi
+    pattern: "chicago|evanston|oak brook|naperville|schaumburg|rosemont|deerfield"
+  - key: nyc
+    pattern: "new york|manhattan|brooklyn|jersey city|hoboken|, ny\\b|stamford"
+# When the same role is posted in several places, the copy in the highest region here is kept.
+region_order: [chi, nyc, remote, unspecified, other]
+keep_unspecified_locations: true
+
+# A track is a lane you'd consider. Every title below becomes a search query.
+tracks:
+  core:                        # the job you do now
+    - commercial real estate underwriter
+    - commercial real estate credit officer
+    - multifamily loan underwriter
+    - commercial real estate portfolio manager
+  adjacent:                    # same skills, different seat
+    - real estate private credit associate
+    - real estate debt fund vice president
+    - debt asset management commercial real estate
+  pivot:                       # a career switch that still uses your domain
+    - proptech product manager
+    - fintech product manager lending
+
+# Optional: pull roles from specific companies' public job boards (free, no key), with your own
+# title filters. Easier: `job-hunter companies add "Name"` / `companies discover --add`, which keep
+# their list in companies.yaml and filter by your search titles automatically.
+# Each company: [display name, ats, board slug].
+# ats = greenhouse | lever | ashby | smartrecruiters | workable | recruitee | workday.
+# Find the slug in the company's careers URL, e.g. boards.greenhouse.io/<slug>, jobs.lever.co/<slug>,
+# jobs.ashbyhq.com/<slug>. Workday slug = "host|tenant|site" from <host>.myworkdayjobs.com/<site>.
+company_feeds:
+  - track: pivot
+    title_include: "product|underwrit|credit|risk|lending|loan|capital markets|solution|implementation|strategy|real estate|investment|portfolio"
+    title_exclude: "software engineer|backend|frontend|full ?stack|devops|recruit|counsel|accountant|designer|marketing|\\bsdr\\b|\\bbdr\\b|intern"
+    companies:
+      - [Dealpath, greenhouse, dealpath]
+      - [Trepp, greenhouse, trepp]
+      - [Cherre, lever, cherre]
+      - [Juniper Square, ashby, junipersquare]
+
+scoring:
+  # keyword -> weight. A match in the job TITLE counts 3x; description matches are capped at 3.
+  # Multi-word phrases are fine; plurals match automatically ("loan" also hits "loans").
+  skills:
+    underwriting: 5
+    commercial real estate: 5
+    multifamily: 4
+    cre: 3
+    credit memo: 5
+    dscr: 4
+    ltv: 3
+    rent roll: 3
+    real estate debt: 4
+    private credit: 5
+    asset management: 3
+    structured finance: 3
+    capital markets: 3
+    vice president: 3
+    director: 3
+    proptech: 5
+    product manager: 4
+    python: 3
+    sql: 2
+  # Penalties checked in the title and the first negative_desc_chars of the description.
+  negative:
+    intern: -30
+    internship: -30
+    entry level: -20
+    junior: -15
+    commission only: -25
+    real estate agent: -20
+    leasing consultant: -20
+    insurance underwriter: -15
+    residential mortgage: -15
+    loan processor: -15
+  # Seniority penalties - regex against the title only.
+  title_negative:
+    "\\banalyst\\b": -10
+    "\\bassociate\\b(?! director)": -8
+    "\\bsummer\\b": -30
+  # A job on these tracks must mention at least one term from EACH group, or it takes
+  # missing_required_penalty per group missed. Keeps generic PM roles with no domain angle out.
+  required_terms:
+    pivot:
+      - [underwriting, commercial real estate, multifamily, real estate debt, credit memo, dscr, proptech, private credit]
+  missing_required_penalty: -15
+  salary_bonus: 2              # small boost when the posting shows pay
+  negative_desc_chars: 600
+  max_raw: 90                  # raw score that maps to ~100; raise it if scores bunch at the top
+  min_score: 20                # roles below this are dropped
+
+# How the final ranking weighs each part (any numbers; they're normalized). Pay uses the floor
+# and target below; a posted top-of-range under the floor drops the job when pay_floor_is_hard.
+ranking:
+  weights: {fit: 40, seniority: 20, location: 15, pay: 15, freshness: 10}
+  pay_floor: 120000
+  pay_target: 175000
+  pay_floor_is_hard: true
+  remote_rank_as: chi          # remote jobs score like this region (default: your first region)
+  unverified_multiplier: 0.85  # jobs not yet confirmed on the employer's site rank a bit lower
+  max_age_days: 30             # freshness hits 0 at this age
+  low_fit_threshold: 40        # jobs with fit under this are scaled down, whatever the pay or city
+
+# Hard filters: these jobs never reach the ranked list (they're listed in excluded.csv).
+filters:
+  exclude_companies: []        # e.g. your current employer
+  allow_companies: []          # exceptions to exclude_companies
+  exclude_keywords: []         # checked in the title and the top of the description
+  already_applied: []          # "Company | Title"; applications.csv is checked too
+
+# Confirm each posting on the employer's own careers site.
+verify:
+  enabled: true
+  top_n: 150                   # verify the best N by keyword score (verification is slower)
+  ats_overrides: {}            # company -> [ats, slug] when auto-discovery can't find their board
+  #  Equinix: [workday, "equinix.wd1|equinix|External"]
+
+# Your private files (all gitignored).
+candidate_file: candidate.yaml
+answers_file: answers.yaml
+tracker_file: applications.csv
+
+# Used by `--llm` (Claude re-ranks the top matches) and by the Claude Code skill.
+# Write it the way a recruiter would summarize you. Keep it in profile.yaml, not here.
+llm:
+  model: claude-sonnet-5-5
+  top_n: 30
+  candidate_summary: |
+    Nine years underwriting commercial loans at regional banks, the last four as a senior
+    underwriter on a $400M CRE book. Based in Chicago; open to New York or remote.
+    Not interested in origination roles.
+
+# Rules the Claude Code skill applies when it reads full job descriptions.
+# (The Python script ignores this section.)
+review:
+  shortlist_size: 10
+  hard_no:                     # skip these outright, even if the keyword score is high
+    - origination / business-development roles
+    - roles at my current or former employers
+  tailor_top_n: 5              # resumes the skill drafts per run, at most
+  resume_rules:
+    - write a new resume for each job from its description; it must not read as AI-written
+    - 1 page if the posting asks for under 5 years of experience, otherwise 2 pages

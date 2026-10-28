@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "job-hunter"
+dynamic = ["version"]
+description = "Find jobs across many boards, confirm them on the employer's site, rank them against your resume, and fill applications with a human on the submit button."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Orren Prunty" }]
+keywords = ["job search", "jobs", "resume", "claude", "career"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+]
+dependencies = [
+  "python-jobspy>=1.1.80",
+  "pandas>=2.0",
+  "pyyaml>=6.0",
+  "reportlab>=4.0",
+  "pypdf>=4.0",
+  "python-docx>=1.0",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.40"]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff==0.16.9", "mypy==1.20.2", "types-PyYAML", "pre-commit>=3"]
+
+[project.scripts]
+job-hunter = "jobhunter.cli:main"
+
+[project.urls]
+Issues = "https://github.com/OWNER/job-hunter/issues"
+
+[tool.setuptools]
+packages = ["jobhunter", "jobhunter.sources"]
+
+[tool.setuptools.dynamic]
+version = { attr = "jobhunter.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["jobhunter"]
+omit = ["jobhunter/cli.py"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "SIM", "S"]
+ignore = [
+  "S310",   # urllib with user-configured URLs is the point of a job scraper
+  "S101",   # asserts in tests
+  "S603", "S607",
+  "SIM108", "SIM102", "SIM905",
+  "S311",   # random jitter, not crypto
+  "S110",   # deliberate try/except/pass in logging
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E501"]
+"evals/*" = ["S", "E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = false
+files = ["jobhunter"]

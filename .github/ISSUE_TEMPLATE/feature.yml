@@ -1,0 +1,11 @@
+name: Idea or new source
+description: Suggest a feature or a job board / ATS to support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: For a new source, link its public API docs if it has them.
+    validations:
+      required: true

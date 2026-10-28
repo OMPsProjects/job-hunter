@@ -1,0 +1,21 @@
+{
+ "offers": [
+  {
+   "id": 7,
+   "title": "Underwriting Lead",
+   "location": "Remote",
+   "city": "",
+   "country": "US",
+   "careers_url": "https://example.recruitee.com/o/underwriting-lead",
+   "description": "<p>Lead underwriting.</p>",
+   "requirements": "<p>5 years</p>",
+   "published_at": "2026-10-18 10:00:00 UTC",
+   "remote": true,
+   "salary": {
+    "min": "130000",
+    "max": "150000",
+    "period": "year"
+   }
+  }
+ ]
+}

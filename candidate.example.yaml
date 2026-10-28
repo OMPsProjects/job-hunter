@@ -1,0 +1,37 @@
+# candidate.example.yaml - the structured version of your resume. Copy to candidate.yaml
+# (gitignored), or run:  python job_hunter.py resume path/to/your_resume.pdf
+# and then fill in the lists (or ask Claude to). This example is a fictional person.
+
+name: Jordan Rivera
+contact:
+  email: jordan.rivera@example.com
+  phone: (312) 555-0199
+  city: Chicago, IL
+  linkedin: linkedin.com/in/jordan-rivera-example
+
+base_resume: candidate/base_resume.pdf   # the source of truth for every tailored resume
+facts_files: [candidate/career_facts.md] # true things that aren't on the base resume (optional)
+
+years_experience: 9
+headline: Commercial lending underwriter moving into credit risk leadership
+
+# Ranking: how close a job title is to these, and which levels you want.
+past_titles: [Senior Credit Underwriter, Credit Analyst]
+target_titles:
+  - Senior Credit Risk Manager
+  - Commercial Real Estate Underwriter
+  - Credit Officer
+  - Underwriting Manager
+# levels: intern, entry, mid, senior, manager, director, vp, executive
+target_levels: [senior, manager, vp]
+
+# Skills as a job posting would phrase them. core counts double.
+skills:
+  core: [underwriting, credit memo, dscr, cash flow analysis, loan structuring, commercial real estate, credit risk]
+  other: [excel, sql, argus, financial modeling]
+
+industries: [banking, commercial real estate]
+
+summary: |
+  Nine years underwriting commercial loans at regional banks, the last four as a senior
+  underwriter on a $400M CRE book. Wants a credit risk or underwriting lead role.

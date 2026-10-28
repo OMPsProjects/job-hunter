@@ -1,0 +1,135 @@
+{
+ "comments": "Search results come 20 to a page. Pass ?page=2, ?page=3 and so on for more; there is no cursor on search. Cursor pagination (nextCursor) is only on /jobs/api, the browse feed. 13/03/2026: The API has been updated to include the companySlug field in the response.",
+ "updatedAt": 1793179752,
+ "offset": 0,
+ "limit": 20,
+ "totalCount": 323,
+ "jobs": [
+  {
+   "title": "Senior Property Underwriter, Programs and Reinsurance",
+   "excerpt": "Embark on a rewarding career journey at Applied Underwriters, where employees have been at the heart of our success story for more than 30 years.",
+   "companyName": "Applied Underwriters",
+   "companySlug": "applied-underwriters",
+   "companyLogo": "https://cdn-images.himalayas.app/pnaqaw216titzarw6ggplyj5kc6u",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Property-Underwriter",
+    "Reinsurance-Underwriting",
+    "Senior-Underwriter",
+    "Commercial-Underwriter",
+    "Insurance-Underwriter",
+    "Senior-Commercial-Lines-Underwriter",
+    "Senior-Specialty-Lines-Underwriter",
+    "Senior-Underwriting-Specialist"
+   ],
+   "parentCategories": [],
+   "description": "<div>Embark on a rewarding career journey at <a href=\"https://himalayas.app/companies/applied-underwriters\">Applied Underwriters</a>, where employees have been at the heart of our success story for more than 30 years. Headquartered in Omaha, NE, our company thrives on innovation and empowers our employees to shape the future of global risk services. Join a team where your ideas are valued and your talents are nurtured with formal, paid training and mentorship. Experience a workplace culture that celebrates initiative, recognizes results, and provides outstanding benefits that allow you to focus on achieving your full potential. </div><div><p><a href=\"https://himalayas.app/companies/applied-underwriters\">Applied Underwriters</a> is expanding its property and reinsurance business and is seeking a senior property underwriter to evaluate, price, and underwrite commercial property risks, including individual accounts and program business. This role also supports the reinsurance team on assumed and ceded treaties, working with leading reinsurance brokers and making recommendations to senior leadership.</p></div><h3>Requirements: </h3><ul>\n<li>At least seven (7) years of property underwriting experience.</li>\n<li>Experience underwriting both individual risks and program business.</li>\n<li>Experience pricing catastrophe-exposed property.</li>\n<li>Bachelor\u2019s degree.</li>\n</ul><h3>Our Benefits Include: </h3><ul><div>\n<li>100% employer-paid medical, dental, and vision insurance for employees.</li>\n<li>401(k) plan with 100% immediate vesting and a 4% company match.</li>\n<li>Paid time off (PTO) and paid holidays.</li>\n<li>On-site pharmacy, Promesa, provides convenient prescription delivery directly to you.</li>\n<li>Life, disability, critical illness and accident insurance.</li>\n<li>Employee Assistance Program (EAP).</li>\n<li>Pre-tax Flexible Spending Accounts for health, dependent care, and commuter-related expenses.</li>\n<li>Tuition reimbursement.</li>\n<li>Fitness reimbursement and various additional quality-of-life benefits.</li>\n</div></ul><div>\n<a href=\"https://himalayas.app/companies/applied-underwriters\">Applied Underwriters</a> is a global risk services firm helping business and people manage uncertainty through its business services, insurance, and reinsurance solutions. As a company, we truly operate differently within our business sector. <a href=\"https://himalayas.app/companies/applied-underwriters\">Applied Underwriters</a> has one of the highest customer retention rates in the industry - a success directly attributed to our employees and their high level of commitment, hard work, and ambition.</div><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1791705134,
+   "expiryDate": 1796889133,
+   "applicationLink": "https://himalayas.app/companies/applied-underwriters/jobs/senior-property-underwriter-programs-and-reinsurance?utm_source=api",
+   "guid": "https://himalayas.app/companies/applied-underwriters/jobs/senior-property-underwriter-programs-and-reinsurance"
+  },
+  {
+   "title": "Head of Commercial Marine Underwriting",
+   "excerpt": "About Mission Underwriting Services At Mission Underwriters, we provide the capital, issuing paper, and reinsurance access you need to launch your own Program Administrator (PA) business quickly and efficiently.",
+   "companyName": "Mission Underwriting Managers",
+   "companySlug": "mission-underwriting-managers",
+   "companyLogo": "https://cdn-images.himalayas.app/93ihgsnzxy9e3sojujz8ofj8qe44",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Director"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Head-Of-Underwriting",
+    "Commercial-Marine-Underwriter",
+    "Underwriting-Director",
+    "Director-Of-Underwriting",
+    "Underwriting-Management",
+    "Marine-Underwriting",
+    "Marine-Insurance-Underwriting"
+   ],
+   "parentCategories": [],
+   "description": "<p><b><strong>About Mission Underwriting Services</strong></b></p><p>At Mission Underwriters, we provide the capital, issuing paper, and reinsurance access you need to launch your own Program Administrator (PA) business quickly and efficiently. We offer non-recourse capital for qualified underwriters, giving you a manageable risk profile with potential equity upside. By taking care of administrative complexities like compliance, risk management, accounting, and HR, we free you to focus on what you do best underwriting and distribution. Our turnkey platform gets you into the market in just a few months, minimizing disruption to your key relationships. With access to our network of highly rated issuing carriers and reinsurance partners, you can secure coverage with less stress and uncertainty. Built from the ground up, our purpose-driven technology simplifies workflows, enhances responsiveness, and eliminates the burden of outdated legacy systems.</p><p><b><strong>What We Offer:</strong></b></p><ul><li>Remote First Work Environment (US Based)</li></ul><ul><li>Medical, Dental, Vision</li></ul><ul><li>401K, 401K Match</li></ul><ul><li>Life and Disability Benefits</li></ul><ul><li>Unaccrued Paid Time Off</li></ul><ul><li>11 Paid Holidays</li></ul><ul><li>Employee Discounts</li></ul><ul><li>Employee Assistance Program</li></ul><ul><li>Educational Assistance Program</li></ul><ul><li>Employee Referral Program</li></ul><ul><li>Paid Parental Leave</li></ul><p></p><p><b><strong>Purpose:</strong></b></p><p>Seafarer Marine is seeking a strategic, growth-oriented <b><strong>Head of Commercial Marine Underwriting</strong></b> to lead and expand our nationwide commercial marine underwriting operation. This executive leadership role is responsible for underwriting strategy, portfolio performance, broker and carrier relationships, talent development, and profitable growth across Seafarer's commercial marine book of business.</p><p>The ideal candidate brings deep expertise in ocean marine and commercial marine underwriting, including marinas, yacht clubs, boat dealers, charter operators, commercial fishing vessels, and related marine exposures. This leader will play a critical role in shaping underwriting appetite, expanding distribution partnerships, mentoring underwriting talent, and driving profitable growth across the organization.</p><p><b><strong>Key Responsibilities</strong></b></p><p><b><strong>Underwriting Leadership</strong></b></p><ul>\n<li>Develop and execute the underwriting strategy for Seafarer's commercial marine portfolio.</li>\n<li>Establish underwriting guidelines, authority levels, pricing strategies, and risk selection standards.</li>\n<li>Maintain portfolio profitability while driving sustainable premium growth.</li>\n<li>Evaluate large, complex, and unique marine risks requiring executive underwriting authority.</li>\n<li>Monitor loss trends, market conditions, and emerging marine exposures.</li>\n</ul><p><b><strong>Portfolio Management</strong></b></p><ul>\n<li>Oversee performance of the commercial marine book, including premium growth, retention, loss ratio, and profitability metrics.</li>\n<li>Partner with actuarial, claims, and carrier partners to optimize underwriting results.</li>\n<li>Identify opportunities to expand product offerings, market segments, and geographic reach.</li>\n<li>Lead portfolio reviews and underwriting audits.</li>\n</ul><p><b><strong>Team Leadership &amp; Talent Development</strong></b></p><ul>\n<li>Lead, mentor, and develop a high-performing underwriting team.</li>\n<li>Provide coaching on underwriting analysis, risk assessment, broker negotiations, and portfolio management.</li>\n<li>Participate in recruitment, hiring, onboarding, and succession planning initiatives.</li>\n<li>Foster a culture of accountability, collaboration, and continuous improvement.</li>\n</ul><p><b><strong>Business Development &amp; Broker Relationships</strong></b></p><ul>\n<li>Build and maintain strategic relationships with retail and wholesale brokers nationwide.</li>\n<li>Represent Seafarer at industry conferences, broker meetings, and marine industry events.</li>\n<li>Partner with distribution teams to identify new business opportunities and strengthen broker engagement.</li>\n<li>Support the acquisition and retention of key accounts.</li>\n</ul><p><b><strong>Strategic Growth Initiatives</strong></b></p><ul>\n<li>Partner with executive leadership to identify new marine products and market opportunities.</li>\n<li>Evaluate expansion opportunities within commercial marine, ocean marine, inland marine, and specialty yacht segments.</li>\n<li>Support carrier negotiations and capacity discussions.</li>\n<li>Contribute to overall business planning and growth strategy.</li>\n</ul><hr><p><b><strong>Qualifications</strong></b></p><p><b><strong>Required Experience</strong></b></p><ul>\n<li>10+ years of commercial marine and/or ocean marine underwriting experience.</li>\n<li>5+ years of underwriting leadership or management experience.</li>\n<li>Proven expertise underwriting:</li>\n<li><ul>\n<li>Marinas</li>\n<li>Yacht clubs</li>\n<li>Boat dealers</li>\n<li>Charter and excursion vessels</li>\n<li>Commercial fishing vessels</li>\n<li>Marine operators</li>\n<li>Waterfront risks and related marine exposures</li>\n</ul></li>\n<li>Demonstrated success managing profitable marine insurance portfolios.</li>\n<li>Strong broker and distribution relationships within the marine insurance marketplace.</li>\n</ul><p></p><p><b><strong>Preferred Experience</strong></b></p><ul>\n<li>Experience with specialty yacht or inland marine products.</li>\n<li>Experience leading underwriting teams in an MGA, carrier, program administrator, or specialty insurance environment.</li>\n<li>Existing marine insurance carrier relationships.</li>\n<li>Experience launching or expanding specialty insurance products.</li>\n</ul><hr><p><b><strong>Competencies</strong></b></p><ul>\n<li>Executive leadership</li>\n<li>Strategic thinking</li>\n<li>Financial acumen</li>\n<li>Portfolio management</li>\n<li>Relationship building</li>\n<li>Negotiation and influence</li>\n<li>Talent development</li>\n<li>Risk assessment and pricing expertise</li>\n<li>Decision-making under delegated authority</li>\n<li>Growth-focused mindset</li>\n</ul><hr><p><b><strong>Education &amp; Certifications</strong></b></p><ul>\n<li>Bachelor's degree required.</li>\n<li>Insurance designations preferred:</li>\n<li><ul>\n<li>CPCU</li>\n<li>AMIM</li>\n<li>ARM</li>\n<li>AU</li>\n<li>CRM or equivalent industry credentials</li>\n</ul></li>\n</ul><hr><p><b><strong>Why Join Seafarer Marine?</strong></b></p><ul>\n<li>Lead a growing and highly specialized marine insurance platform.</li>\n<li>Shape the future of a nationally recognized marine underwriting organization.</li>\n<li>Work alongside experienced marine industry professionals.</li>\n<li>Influence underwriting strategy and product expansion.</li>\n<li><b><strong>Participate in the company\u2019s long-term growth through ownership equity available for this role.</strong></b></li>\n<li>Join a company committed to innovation, entrepreneurial growth, and underwriting excellence</li>\n</ul><p><b><strong>Working Conditions:</strong></b></p><p>\u00b7Requires a quiet work environment with regular sitting at a computer for extended periods of time.</p><p>\u00b7Occasional walking and standing, and lifting of up to 10 lbs.</p><h3>\u00b7Regular use of hands and fingers.</h3><h3>\u00b7Frequent talking or hearing.</h3><p>\u00b7Vision requirements: Close, distance, color, peripheral, focus and depth perception.</p><p><b><strong>Additional Information</strong></b><br><br><b><strong>This is a remote position. Planned, in-office activities may be required on occasion (typically 2-4x per year).</strong></b></p><p><b><strong>You must live in the United States and be authorized to work in the United States without requirement of employment</strong></b><b><strong>sponsorship/visa.</strong></b></p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1792683813,
+   "expiryDate": 1797867812,
+   "applicationLink": "https://himalayas.app/companies/mission-underwriting-managers/jobs/head-of-commercial-marine-underwriting?utm_source=api",
+   "guid": "https://himalayas.app/companies/mission-underwriting-managers/jobs/head-of-commercial-marine-underwriting"
+  },
+  {
+   "title": "Senior Healthcare Underwriter",
+   "excerpt": "Applied Financial Lines is looking for an Underwriter to join our Healthcare Professional Liability team, focused on Senior Living, Home Health, Hospice, and Adult Day Care accounts.",
+   "companyName": "Applied Underwriters",
+   "companySlug": "applied-underwriters",
+   "companyLogo": "https://cdn-images.himalayas.app/pnaqaw216titzarw6ggplyj5kc6u",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "Underwriter",
+    "Healthcare-Underwriter",
+    "Insurance-Underwriter",
+    "Senior-Healthcare-Underwriter",
+    "Senior-Underwriter",
+    "Health-Insurance-Underwriter"
+   ],
+   "parentCategories": [],
+   "description": "<div>\n<p>Applied Financial Lines is looking for an Underwriter to join our Healthcare Professional Liability team, focused on Senior Living, Home Health, Hospice, and Adult Day Care accounts.</p>\n<p>Applied Financial Lines is a global specialty lines provider within United Risk, a property and casualty underwriting and distribution platform with deep worldwide technical resources, significant underwriting capacity, and an entrepreneurial culture. A performance outlier for over three decades, United Risk has attracted top insurance talent and built a reputation for outperforming the market.</p>\n<p>You\u2019ll join a team that values creative thinking and disciplined underwriting, with the autonomy to build your book and the resources to do it well.</p>\n</div><h3>Requirements:</h3><ul><div>\n<li>Healthcare Professional Liability underwriting expertise</li>\n<li>Proven history of effectively assessing risk and making sound underwriting decisions</li>\n<li>Established broker relationships including experience working with wholesalers.</li>\n<li>Bachelor's degree or equivalent experience.</li>\n<li>Knowledge of Microsoft Office Suite as well as other business-related software.</li>\n</div></ul><h3>Our Benefits Include: </h3><ul><div>\n<li>100% employer-paid medical, dental, and vision insurance for employees.</li>\n<li>401(k) plan with 100% immediate vesting and a 4% company match.</li>\n<li>Paid time off (PTO) and paid holidays. </li>\n<li>Life, disability, critical illness and accident insurance.</li>\n<li>Employee Assistance Program (EAP).</li>\n<li>Pre-tax Flexible Spending Accounts for health, dependent care, and commuter-related expenses.</li>\n<li>Tuition reimbursement.</li>\n<li>Fitness reimbursement and various additional quality-of-life benefits.</li>\n</div></ul><div>United Risk is independently owned and operated by its practice partners and is affiliated with <a href=\"https://himalayas.app/companies/applied-underwriters\">Applied Underwriters</a> through its common and powerful brand identity.</div><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1792604866,
+   "expiryDate": 1797788864,
+   "applicationLink": "https://himalayas.app/companies/applied-underwriters/jobs/senior-healthcare-underwriter?utm_source=api",
+   "guid": "https://himalayas.app/companies/applied-underwriters/jobs/senior-healthcare-underwriter"
+  }
+ ]
+}

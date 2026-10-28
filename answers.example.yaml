@@ -1,0 +1,40 @@
+# answers.example.yaml - copy to answers.yaml (gitignored). The skill fills this in as you
+# answer application questions, and reuses answers on the next application.
+# Never stored: ID / account numbers, passwords, and EEO self-identification answers
+# (race, gender, veteran, disability...). Those you answer yourself each time.
+
+facts:
+  first_name: Jordan
+  last_name: Rivera
+  email: jordan.rivera@example.com
+  phone: (312) 555-0199
+  city: Chicago
+  state: IL
+  linkedin: https://linkedin.com/in/jordan-rivera-example
+
+answers:
+  - question: Are you legally authorized to work in the United States?
+    answer: "Yes"
+    aliases: []
+    source: you
+    updated: 2026-10-28
+  - question: Will you now or in the future require visa sponsorship?
+    answer: "No"
+    aliases: ["Do you require sponsorship for employment visa status?"]
+    source: you
+    updated: 2026-10-28
+  - question: Are you willing to relocate?
+    answer: Yes, to New York or Denver
+    aliases: []
+    source: you
+    updated: 2026-10-28
+  - question: What are your salary expectations?
+    answer: $135,000 base, flexible depending on the full package
+    aliases: ["Desired salary"]
+    source: you
+    updated: 2026-10-28
+  - question: How many years of commercial real estate underwriting experience do you have?
+    answer: "9"
+    aliases: []
+    source: resume
+    updated: 2026-10-28

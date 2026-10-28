@@ -44,6 +44,22 @@ descriptions for the daily shortlist) uses Claude, through your Claude Code plan
 per token instead of using your subscription. Unset it unless that's what you want. The
 optional `--llm` flags always use the API key.
 
+## The web page
+
+```bash
+job-hunter ui
+```
+
+opens job-hunter in your browser: today's ranked jobs with a reading pane for each posting,
+shortlisting and "would you apply?" ratings from the keyboard, searches with live progress, your
+applications, the companies and boards it searches, response-rate stats, setup as one question
+per page, and settings. It runs on your computer only (127.0.0.1); nothing is hosted anywhere.
+
+The AI steps stay in Claude Code: on any job, "Ask Claude to..." copies a request (tailor my
+resume, write a cover letter, fill in the application, prepare for the interview) to paste into
+Claude Code. Try it with made-up data first: `python scripts/make_demo.py /tmp/jh-demo`, then
+`cd /tmp/jh-demo && job-hunter ui`.
+
 ## Set up (5 minutes)
 
 ```bash
@@ -231,6 +247,7 @@ Private files are written owner-only on macOS and Linux; logs mask emails, phone
 ## All commands
 
 ```
+job-hunter ui [--port 8765] [--no-browser]
 job-hunter setup [--from answers.yaml] [--force]
 job-hunter check
 job-hunter search [--sources jobspy,remotive,...] [--no-verify] [--llm]
@@ -293,6 +310,10 @@ Options for every command: `--profile PATH`, `--out DIR`, `-v`. `job-hunter -h` 
 - Careers-site directory: the [ats-scrapers](https://github.com/kalil0321/ats-scrapers) project's
   public companies directory (MIT).
 - Title model (optional): [TechWolf/JobBERT-v3](https://huggingface.co/TechWolf/JobBERT-v3) (MIT).
+- Typeface for the web page: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
+  by the Braille Institute (SIL Open Font License; `jobhunter/web/static/fonts/OFL.txt`).
+- Setup's one-question-per-page flow follows the GOV.UK Design System's
+  [question pages](https://design-system.service.gov.uk/patterns/question-pages/) pattern.
 - Job boards: [python-jobspy](https://github.com/speedyapply/JobSpy) (MIT) and each board's API.
 
 ## Contributing

@@ -369,6 +369,53 @@ def build_candidate(a: dict, resume_text: str, resume_path):
     return cand
 
 
+def _empty(v):
+    return v in (None, "", [], {}) or v == {"core": [], "other": []}
+
+
+def merge_candidate(old: dict, new: dict) -> dict:
+    """New answers win; anything the new run left empty keeps its old value."""
+    out = dict(new)
+    for k, v in old.items():
+        if _empty(out.get(k)) and not _empty(v):
+            out[k] = v
+    return out
+
+
+def current_answers(repo: Path) -> dict:
+    """The answers an existing profile and candidate.yaml imply, to prefill a re-run of setup."""
+    from .profile import load_profile
+    repo = Path(repo)
+    prof_path = repo / "profile.yaml"
+    if not prof_path.exists():
+        return {}
+    try:
+        p = load_profile(prof_path)
+        raw = p.raw
+        cand = yaml.safe_load((repo / p.candidate_file).read_text(encoding="utf-8")) if (repo / p.candidate_file).exists() else {}
+    except (SystemExit, OSError, yaml.YAMLError):
+        return {}
+    cand = cand or {}
+    skills = cand.get("skills") or {}
+    skill_list = (skills.get("core", []) + skills.get("other", [])) if isinstance(skills, dict) else list(skills or [])
+    keys = [k for k, _ in p.regions]
+    st = raw.get("setup") or {}
+    out = {
+        "resume": cand.get("base_resume") or "", "field": st.get("field") or "",
+        "titles": p.tracks.get("core", []), "adjacent_titles": p.tracks.get("adjacent", []),
+        "pivot_titles": p.tracks.get("pivot", []), "levels": cand.get("target_levels") or [],
+        "years_experience": cand.get("years_experience"), "skills": skill_list or list(p.skills),
+        "locations": p.locations, "remote": p.include_remote,
+        "remote_like_top_city": bool(keys and p.remote_rank_as == keys[0]),
+        "pay_floor": p.pay_floor, "pay_target": p.pay_target,
+        "avoid_companies": p.exclude_companies, "avoid_keywords": p.exclude_keywords,
+        "target_companies": [], "discover_companies": bool(st.get("discover_companies", True)),
+    }
+    if st.get("occupations"):
+        out["occupations"] = st["occupations"]
+    return {k: v for k, v in out.items() if v not in (None, "")}
+
+
 def run_setup(repo: Path, answers_in=None, ask=input, say=print, force=False):
     """Writes profile.yaml, candidate.yaml (and candidate/resume.txt), adds target companies.
     Returns dict of what it did."""
@@ -403,6 +450,15 @@ def run_setup(repo: Path, answers_in=None, ask=input, say=print, force=False):
     if cand_path.exists() and not force:
         say(f"  {cand_path.name} already exists; left it alone (use --force to rebuild it).")
     else:
+        if cand_path.exists():
+            # Re-running setup keeps what it didn't ask about (name, contact, past titles, summary,
+            # facts) and anything left blank this time; the old file is kept as candidate.yaml.bak.
+            try:
+                old = yaml.safe_load(cand_path.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError:
+                old = {}
+            write_text_atomic(cand_path.with_suffix(".yaml.bak"), cand_path.read_text(encoding="utf-8"), private=True)
+            cand = merge_candidate(old, cand)
         header = ("# candidate.yaml - your resume, structured. Private (gitignored). Made by `job-hunter setup`.\n"
                   "# Add past_titles and more skills for better ranking; the Claude skill can fill these in.\n")
         write_text_atomic(cand_path, header + yaml.safe_dump(cand, sort_keys=False, allow_unicode=True, width=1000))

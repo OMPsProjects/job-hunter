@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="jh-token" content="__JH_TOKEN__">
+<title>job-hunter</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="desk">
+  <div class="desk-inner">
+    <a class="wordmark" href="#jobs" aria-label="job-hunter, today's jobs">job-hunter</a>
+    <nav aria-label="Sections">
+      <ul class="tabs">
+        <li><a href="#jobs" data-view="jobs">Jobs</a></li>
+        <li><a href="#search" data-view="search">Search</a></li>
+        <li><a href="#applications" data-view="applications">Applications</a></li>
+        <li><a href="#companies" data-view="companies">Companies</a></li>
+        <li><a href="#stats" data-view="stats">Stats</a></li>
+        <li><a href="#setup" data-view="setup">Setup</a></li>
+        <li><a href="#settings" data-view="settings">Settings</a></li>
+      </ul>
+    </nav>
+    <p class="run-state" id="run-state" aria-live="polite"></p>
+  </div>
+</header>
+<main id="main" tabindex="-1"></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="noscript">job-hunter's page needs JavaScript. The command line works without it: run <code>job-hunter -h</code>.</p></noscript>
+</body>
+</html>

@@ -29,6 +29,17 @@ what you saw and how to reproduce it, using the fictional example files, never y
 - **Never stored, by design:** ID and account numbers, passwords, date of birth, and EEO /
   self-identification answers. The answer bank refuses them.
 
+## The web page (`job-hunter ui`)
+
+- It listens on 127.0.0.1 only, so other devices on your network can't reach it.
+- Every API request must carry a random token generated when the page starts and embedded in
+  it, so other websites open in your browser can't read or change your data; requests whose
+  Host isn't localhost are refused (DNS rebinding).
+- The page loads nothing from the internet (fonts and scripts are local) and has a strict
+  Content Security Policy. Job posting text is only ever shown as text, never as HTML.
+- It runs only the job-hunter commands it offers (search, re-rank, find companies, update the
+  directory); a request can't choose another command.
+
 ## The Claude skill
 
 The skill drives your browser to fill applications. Its rules, which the mock-site evals in

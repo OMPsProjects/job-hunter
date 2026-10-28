@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 (2026-10-28)
+
+- **The web page.** `job-hunter ui` serves a local page (127.0.0.1, token-protected, no outside
+  requests): ranked jobs with a reading pane and keyboard triage, searches with live progress,
+  applications, companies and boards, stats, a one-question-per-page setup, and settings. The AI
+  steps copy a ready-made request for Claude Code. `scripts/make_demo.py` builds a folder of
+  fictional data to try it with.
+- Settings saved from the page keep your profile.yaml comments (new dependency: ruamel.yaml), and
+  re-running setup keeps details it doesn't ask about (old files saved as `.bak`, owner-only).
+
 ## 1.1.0 (2026-10-28)
 
 - **Careers-site directory.** Finding a company's careers site now checks a public directory of

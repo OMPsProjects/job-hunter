@@ -1,6 +1,7 @@
 """job-hunter command line. Run `job-hunter -h` or `job-hunter <command> -h`.
 
 Getting started:
+  ui                open job-hunter in your browser (everything below, point and click)
   setup             answer a few questions -> profile.yaml, candidate.yaml, companies.yaml
   check             validate your settings without searching
 
@@ -636,6 +637,14 @@ def cmd_stories(p, args):
     return 1 if problems else 0
 
 
+def cmd_ui(p, args):
+    from .web.server import serve
+    # The folder you start it in (unlike other commands, it doesn't fall back to the code's folder:
+    # setup from the page writes files, and they belong where you are).
+    path = Path(args.profile) if args.profile else Path.cwd() / "profile.yaml"
+    return serve(path, port=args.port, open_browser=not args.no_browser)
+
+
 def cmd_scan(p, args):
     """Check a saved posting (text or HTML file) for hidden text and lines aimed at AI tools."""
     from .common import html_to_text
@@ -880,6 +889,9 @@ def build_parser():
     tr.add_argument("--notes")
     tr.add_argument("--source", help="where you found it (default: looked up from the last search)")
     tr.add_argument("--track", dest="job_track", help="which of your tracks (default: looked up)")
+    ui = add("ui", help="open job-hunter in your browser (served on this computer only)")
+    ui.add_argument("--port", type=int, default=8765)
+    ui.add_argument("--no-browser", action="store_true", help="don't open a browser window")
     so = add("stories", help="your interview story bank (candidate/stories.md): list | check")
     so.add_argument("action", choices=["list", "check"])
     so.add_argument("--file", help="default: candidate/stories.md")
@@ -910,7 +922,7 @@ COMMANDS = {
     "setup": cmd_setup, "check": cmd_check, "search": cmd_search, "rank": cmd_rank, "health": cmd_health,
     "verify": cmd_verify, "companies": cmd_companies, "boards": cmd_boards, "resume": cmd_resume,
     "render": cmd_render, "lint": cmd_lint, "answers": cmd_answers, "track": cmd_track,
-    "labels": cmd_labels, "eval-rank": cmd_eval_rank, "stats": cmd_stats, "scan": cmd_scan, "stories": cmd_stories,
+    "labels": cmd_labels, "eval-rank": cmd_eval_rank, "stats": cmd_stats, "scan": cmd_scan, "stories": cmd_stories, "ui": cmd_ui,
     "occupations": cmd_occupations,
     "data": cmd_data,
 }

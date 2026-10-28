@@ -1,0 +1,241 @@
+"""The local web page's server: security checks, every endpoint, and the background task runner."""
+import json
+import sys
+import threading
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
+from jobhunter.web import server as web  # noqa: E402
+
+
+@pytest.fixture
+def demo(tmp_path):
+    import make_demo
+    folder = tmp_path / "demo"
+    make_demo.build(folder)
+    return folder
+
+
+@pytest.fixture
+def ui(demo):
+    holder = {}
+    ready = threading.Event()
+
+    def on_ready(srv, app):
+        holder.update(server=srv, app=app)
+        ready.set()
+    t = threading.Thread(target=web.serve, args=(demo / "profile.yaml",), kwargs={"port": 0, "open_browser": False, "ready": on_ready},
+                         daemon=True)
+    t.start()
+    assert ready.wait(10)
+    app = holder["app"]
+    base = f"http://127.0.0.1:{app.port}"
+
+    def call(path, body=None, token=True, headers=None, raw=None):
+        h = {"X-JH-Token": app.token} if token else {}
+        h.update(headers or {})
+        data = None
+        if raw is not None:
+            data = raw
+        elif body is not None:
+            data = json.dumps(body).encode()
+            h["Content-Type"] = "application/json"
+        req = urllib.request.Request(base + path, data=data, headers=h, method="POST" if data is not None else "GET")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return r.status, json.loads(r.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read() or b"{}")
+    yield types_ns(call=call, app=app, base=base, folder=demo)
+    holder["server"].shutdown()
+
+
+def types_ns(**kw):
+    import types
+    return types.SimpleNamespace(**kw)
+
+
+def test_page_carries_token_and_strict_headers(ui):
+    with urllib.request.urlopen(ui.base + "/") as r:
+        html = r.read().decode()
+        assert ui.app.token in html and "__JH_TOKEN__" not in html
+        assert "default-src 'self'" in r.headers["Content-Security-Policy"]
+        assert r.headers["X-Frame-Options"] == "DENY"
+    for name in ("app.js", "app.css", "fonts/atkinson-Regular.woff2", "favicon.svg"):
+        with urllib.request.urlopen(f"{ui.base}/{name}") as r:
+            assert r.status == 200
+
+
+def test_api_needs_the_token_and_a_local_host(ui):
+    assert ui.call("/api/status", token=False)[0] == 403
+    assert ui.call("/api/status", headers={"X-JH-Token": "wrong"})[0] == 403
+    status, body = ui.call("/api/status", headers={"Host": "evil.example.com"})
+    assert status == 403 and "localhost" in body["error"]
+    assert ui.call("/../../etc/passwd")[0] == 404
+
+
+def test_status_and_jobs(ui):
+    status, s = ui.call("/api/status")
+    assert status == 200 and s["has_profile"] and s["last_run"]["new"] >= 5
+    status, j = ui.call("/api/jobs?set=ranked")
+    assert status == 200 and len(j["jobs"]) >= 5 and set(j["weights"]) >= {"fit", "pay"}
+    first = j["jobs"][0]
+    assert "description" not in first  # the list stays light; details come from /api/job
+    assert next(x for x in j["jobs"] if x["company"] == "Lakeshore Community Bank")["status"] == "shortlisted"
+    status, one = ui.call("/api/job?url=" + urllib.request.quote(first["job_url"], safe=""))
+    assert status == 200 and one["description"]
+    assert ui.call("/api/job?url=https%3A%2F%2Fnope")[0] == 404
+    assert ui.call("/api/jobs?set=bogus")[0] == 400
+    status, ex = ui.call("/api/jobs?set=excluded")
+    assert status == 200 and any("sponsor" in (x.get("excluded_reason") or "") or x.get("excluded_reason") for x in ex["jobs"])
+
+
+def test_track_label_stats(ui):
+    status, j = ui.call("/api/jobs")
+    job = j["jobs"][1]
+    status, row = ui.call("/api/track", {"status": "submitted", "company": job["company"], "title": job["title"],
+                                         "job_url": job["job_url"], "employer_url": job.get("employer_url")})
+    assert status == 200 and row["status"] == "submitted" and row["source"] == "indeed"
+    assert ui.call("/api/track", {"status": "teleported", "company": "A", "title": "B"})[0] == 400
+    assert ui.call("/api/label", {"job_url": job["job_url"], "label": "2"})[0] == 200
+    assert ui.call("/api/label", {"job_url": job["job_url"], "label": "7"})[0] == 400
+    _, j2 = ui.call("/api/jobs")
+    again = next(x for x in j2["jobs"] if x["job_url"] == job["job_url"])
+    assert again["status"] == "submitted" and again["label"] == "2"
+    status, st = ui.call("/api/stats")
+    assert status == 200 and st["overall"]["sent"] >= 3 and st["ranking_check"]["labeled"] == 1
+    status, apps = ui.call("/api/applications")
+    assert status == 200 and len(apps["applications"]) >= 4 and "submitted" in apps["statuses"]
+
+
+def test_companies(ui, monkeypatch):
+    from jobhunter import targets
+    monkeypatch.setattr(targets, "add_by_name", lambda t, name, track=None: (True, f"added {name}"))
+    status, c = ui.call("/api/companies")
+    assert status == 200 and len(c["companies"]) == 2 and c["boards"][0]["url"].startswith("https://cre-jobs")
+    assert ui.call("/api/companies", {"action": "add-company", "name": "Acme"})[1]["message"] == "added Acme"
+    assert ui.call("/api/companies", {"action": "add-company"})[0] == 400
+    status, r = ui.call("/api/companies", {"action": "remove", "name": "Meridian Trust"})
+    assert r["ok"] is True
+    assert len(ui.call("/api/companies")[1]["companies"]) == 1
+
+
+def test_settings_round_trip(ui):
+    status, s = ui.call("/api/settings")
+    assert status == 200 and s["ranking.weights"]["fit"] == 40
+    body = {"ranking.pay_floor": "100000", "filters.needs_sponsorship": True, "ranking.weights": {"fit": 50, "seniority": 20,
+            "location": 10, "pay": 10, "freshness": 10}, "filters.exclude_keywords": ["sales", "", " origination "],
+            "sources": {"remoteok": False}}
+    status, r = ui.call("/api/settings", body)
+    assert status == 200 and r["backup"] == "profile.yaml.bak"
+    import yaml
+    data = yaml.safe_load((ui.folder / "profile.yaml").read_text())
+    assert data["ranking"]["pay_floor"] == 100000 and data["filters"]["needs_sponsorship"] is True
+    assert data["filters"]["exclude_keywords"] == ["sales", "origination"]
+    assert data["sources"]["remoteok"] is False
+    text = (ui.folder / "profile.yaml").read_text()
+    assert "# Confirm each posting on the employer's own careers site." in text  # comments survive
+    bak = ui.folder / "profile.yaml.bak"
+    assert bak.exists() and (bak.stat().st_mode & 0o077) == 0 or __import__("os").name != "posix"
+    for bad in ({"ranking.weights": {"fit": -5}}, {"ranking.weights": {"__evil__": 1}}, {"ranking.weights": {"fit": 0, "pay": 0}},
+                {"ranking.weights": [1, 2]}, {"ranking.pay_floor": float("inf")}, {"verify.top_n": -5},
+                {"filters.needs_sponsorship": "false"}, {"filters.exclude_companies": "Acme"},
+                {"sources": {"made_up_source": True}}, {"sources": {"remoteok": "maybe"}}, {"output_dir": "/etc"}):
+        status, _ = ui.call("/api/settings", json.loads(json.dumps(bad).replace("Infinity", "1e999")))
+        assert status == 400, bad
+
+
+def test_unshortlist_and_damaged_files(ui):
+    _, j = ui.call("/api/jobs")
+    job = next(x for x in j["jobs"] if x["status"] == "shortlisted")
+    assert ui.call("/api/untrack", {"job_url": job["job_url"], "company": job["company"], "title": job["title"]})[1]["removed"] is True
+    _, j = ui.call("/api/jobs")
+    assert next(x for x in j["jobs"] if x["job_url"] == job["job_url"])["status"] is None
+    (ui.folder / "applications.csv").write_text("")
+    assert ui.call("/api/applications")[0] == 200 and ui.call("/api/jobs")[0] == 200
+    (ui.folder / "results" / "labels.csv").write_text("label\n2\n")
+    assert ui.call("/api/jobs")[0] == 200
+    (ui.folder / "results" / "jobs_new_details.jsonl").write_text('{"title": "half')
+    status, body = ui.call("/api/jobs")
+    assert status == 500 and "damaged" in body["error"]
+
+
+def test_bad_content_length(ui):
+    import http.client
+    c = http.client.HTTPConnection("127.0.0.1", ui.app.port)
+    c.putrequest("POST", "/api/track")
+    c.putheader("X-JH-Token", ui.app.token)
+    c.putheader("Content-Length", "-5")
+    c.endheaders()
+    assert c.getresponse().status == 400
+
+
+def test_setup_rerun_keeps_details(ui):
+    import yaml
+    before = yaml.safe_load((ui.folder / "candidate.yaml").read_text())
+    _, info = ui.call("/api/setup")
+    assert info["current"]["titles"] and info["current"]["locations"]
+    status, _ = ui.call("/api/setup", {"answers": {"titles": ["Credit Officer"]}, "force": True})
+    assert status == 200
+    after = yaml.safe_load((ui.folder / "candidate.yaml").read_text())
+    assert after["name"] == before["name"] and after.get("past_titles") == before.get("past_titles")
+    assert (ui.folder / "candidate.yaml.bak").exists()
+
+
+def test_setup_flow(ui, tmp_path):
+    status, info = ui.call("/api/setup")
+    assert status == 200 and info["has_profile"] and any(q["key"] == "titles" for q in info["questions"])
+    status, sug = ui.call("/api/setup/suggest", {"titles": ["Credit Analyst"]})
+    assert status == 200 and sug["related_titles"]
+    status, up = ui.call("/api/setup/resume", raw=b"Jordan Rivera\nUnderwriter", headers={"X-Filename": "my%20resume.txt"})
+    assert status == 200 and up["path"] == "candidate/base_resume.txt"
+    assert ui.call("/api/setup/resume", raw=b"MZ...", headers={"X-Filename": "evil.exe"})[0] == 400
+    assert ui.call("/api/setup", {"answers": {"titles": []}})[0] == 400
+    answers = {"resume": up["path"], "titles": ["Credit Analyst"], "locations": ["Chicago, IL"], "remote": False}
+    status, r = ui.call("/api/setup", {"answers": answers})
+    assert status == 409  # a profile exists: needs force
+    status, r = ui.call("/api/setup", {"answers": answers, "force": True})
+    assert status == 200 and isinstance(r["problems"], list)
+    assert (ui.folder / "profile.yaml.bak").exists()
+
+
+def test_background_task(ui, monkeypatch):
+    monkeypatch.setattr(ui.app, "cli", lambda *a: [sys.executable, "-c", "import time\nfor i in range(3): print('line', i)\n"])
+    status, st = ui.call("/api/task", {"name": "search"})
+    assert status == 200
+    import time
+    for _ in range(50):
+        _, st = ui.call("/api/task?since=0")
+        if not st["running"] and st["returncode"] is not None:
+            break
+        time.sleep(0.1)
+    assert st["returncode"] == 0 and st["lines"] == ["line 0", "line 1", "line 2"]
+    _, later = ui.call(f"/api/task?since={st['next']}")
+    assert later["lines"] == []
+    assert ui.call("/api/task", {"name": "rm -rf"})[0] == 400
+
+
+def test_one_task_at_a_time(ui, monkeypatch):
+    monkeypatch.setattr(ui.app, "cli", lambda *a: [sys.executable, "-c", "import time; time.sleep(5)"])
+    assert ui.call("/api/task", {"name": "rank"})[0] == 200
+    status, body = ui.call("/api/task", {"name": "search"})
+    assert status == 409 and "still running" in body["error"]
+    assert ui.call("/api/task/stop", {})[1]["stopped"] is True
+
+
+def test_busy_port_gives_a_message(capsys):
+    import socket
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    s.listen()
+    try:
+        assert web.serve(Path("profile.yaml"), port=s.getsockname()[1], open_browser=False) == 1
+    finally:
+        s.close()
+    assert "--port" in capsys.readouterr().err

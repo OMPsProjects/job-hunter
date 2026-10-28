@@ -16,8 +16,11 @@ STATUSES = ["shortlisted", "tailored", "needs_account", "ready_for_review", "sub
 
 def load(path: Path) -> pd.DataFrame:
     path = Path(path)
-    if path.exists():
-        df = pd.read_csv(path, dtype=str).fillna("")
+    if path.exists() and path.stat().st_size:
+        try:
+            df = pd.read_csv(path, dtype=str).fillna("")
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame(columns=COLUMNS)
         for c in COLUMNS:
             if c not in df:
                 df[c] = ""
@@ -39,6 +42,16 @@ def find(df, company=None, title=None, url=None):
         if company and title and company_key(r["company"]) == company_key(company) and norm(r["title"]) == norm(title):
             return i
     return None
+
+
+def remove_shortlisted(path: Path, job_url=None, employer_url=None, company=None, title=None) -> bool:
+    """Undo a shortlist: drop the row, but only if nothing else has happened to it yet."""
+    df = load(path)
+    i = find(df, company, title, job_url or employer_url)
+    if i is None or df.at[i, "status"] != "shortlisted":
+        return False
+    save(df.drop(index=i).reset_index(drop=True), path)
+    return True
 
 
 def upsert(path: Path, status, company, title, **fields):

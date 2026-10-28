@@ -22,6 +22,7 @@ dependencies = [
   "python-jobspy>=1.1.80",
   "pandas>=2.0",
   "pyyaml>=6.0",
+  "ruamel.yaml>=0.18",
   "reportlab>=4.0",
   "pypdf>=4.0",
   "python-docx>=1.0",
@@ -39,10 +40,11 @@ job-hunter = "jobhunter.cli:main"
 Issues = "https://github.com/OWNER/job-hunter/issues"
 
 [tool.setuptools]
-packages = ["jobhunter", "jobhunter.sources", "jobhunter.data"]
+packages = ["jobhunter", "jobhunter.sources", "jobhunter.data", "jobhunter.web"]
 
 [tool.setuptools.package-data]
 "jobhunter.data" = ["*.json.gz", "README.md"]
+"jobhunter.web" = ["static/*", "static/fonts/*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "jobhunter.__version__" }

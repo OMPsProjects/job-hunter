@@ -33,6 +33,15 @@ Never commit your own profile, resume, answers or results.
    `ROUTES` in `tests/test_sources.py`. Add one live check in `tests/live/`.
 5. Document it in the README's sources table.
 
+## Update bundled or downloaded data
+
+- **Occupations:** download the newest O*NET database ("Text" zip) from
+  onetcenter.org/database.html, run `python scripts/build_occupations.py <zip>`, update the version
+  in `jobhunter/data/README.md` and `occupations.ATTRIBUTION`, and run the tests.
+- **Metro areas for pay estimates:** `wages.AREAS` maps setup's cities to BLS OEWS area codes
+  (check them against `https://download.bls.gov/pub/time.series/oe/oe.area`).
+- The careers-site directory is downloaded at run time, not committed.
+
 ## Change the ranking
 
 Run `job-hunter labels`, label a run, and compare `job-hunter eval-rank` before and after. Put

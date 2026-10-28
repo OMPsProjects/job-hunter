@@ -68,6 +68,9 @@ def html_to_text(s) -> str:
     s = str(s or "")
     if "&lt;" in s:  # some APIs (Greenhouse) send HTML-escaped HTML: unescape first, then strip tags
         s = html.unescape(s)
+    s = re.sub(r"<(script|style|template|noscript)\b[^>]*>.*?</\1\s*>", " ", s, flags=re.I | re.S)
+    from .integrity import mark_hidden_html
+    s = mark_hidden_html(s)  # hidden text aimed at AI tools is labeled so the scan can say it was hidden
     s = re.sub(r"<\s*(br|/p|/li|/h\d)\s*/?>", "\n", s, flags=re.I)
     s = re.sub(r"<[^>]+>", " ", s)
     s = html.unescape(s)

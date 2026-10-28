@@ -89,6 +89,34 @@ class Store:
             [(u, now, now, c, t) for u, c, t in rows if u])
         self.db.commit()
 
+    def repost_notes(self, rows, min_days: int = 14) -> dict:
+        """For new postings, a note when the same company listed the same title under a different
+        link at least `min_days` ago: {job_url: note}. A re-listed job can be a hard-to-fill role,
+        a refreshed ad for a role that's quietly filled, or a standing 'pipeline' posting, so this
+        is shown as a flag, never used to drop a job. rows: iterable of (job_url, company, title)."""
+        from .common import company_key, norm
+        earlier: dict = {}
+        for url, first, comp, title in self.db.execute(
+                "SELECT job_url, first_seen, company, title FROM seen WHERE company IS NOT NULL AND title IS NOT NULL"):
+            earlier.setdefault((company_key(comp), norm(title)), []).append((first, url))
+        today = dt.datetime.now()
+        notes = {}
+        for url, comp, title in rows:
+            prior = [(f, u) for f, u in earlier.get((company_key(comp), norm(title)), []) if u != url]
+            old = []
+            for first, _ in prior:
+                try:
+                    age = (today - dt.datetime.fromisoformat(first)).days
+                except (TypeError, ValueError):
+                    continue
+                if age >= min_days:
+                    old.append(age)
+            if old:
+                n = len(old)
+                notes[url] = (f"re-listed: this company posted the same title {max(old)} days ago"
+                              + (f" ({n} earlier listings)" if n > 1 else ""))
+        return notes
+
     def import_seen_csv(self, csv_path: Path) -> int:
         """One-time import of the older seen_jobs.csv."""
         if not csv_path.exists() or self.db.execute("SELECT value FROM meta WHERE key='seen_csv_imported'").fetchone():

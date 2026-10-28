@@ -12,7 +12,12 @@ Start with the work, not the resume. Ask:
    "B2B software sales", "commercial real estate lending", "high school teaching").
 2. **What job titles would you apply to tomorrow?** If they're unsure, propose 5-8 real titles
    people in that field search for, and let them pick. Then ask about **adjacent** titles (same
-   skills, different seat) and any **career-change** titles.
+   skills, different seat) and any **career-change** titles. To suggest adjacent titles and
+   skills from standard occupation data, run `jh occupations suggest "Title 1" "Title 2"`: it
+   shows which occupation each title maps to, job titles from related occupations, and skills
+   postings in those occupations ask for. Check the mapping makes sense (a "Commercial Real
+   Estate Underwriter" maps to Insurance Underwriters, which is wrong; `jh occupations search
+   "loan underwriter"` finds better ones) and offer only suggestions that fit their field.
 3. **What level?** One or more of: intern, entry, mid, senior, manager, director, vp, executive.
    Years of experience in this field.
 4. **Where?** Cities in order of preference, and whether remote is OK (and whether remote should
@@ -55,6 +60,9 @@ avoid_companies: [Current Employer Inc]
 avoid_keywords: [travel nurse]
 target_companies: [Denver Health, UCHealth]
 discover_companies: yes
+needs_sponsorship: no                        # ask if relevant; see §6
+occupations: {core: "29-1141.00"}            # optional: track -> occupation code for pay estimates,
+                                             #   when a title maps to the wrong one
 ```
 
 ```
@@ -74,8 +82,8 @@ Two ways, use both:
 
 **From the job market (after the first search).** `jh companies discover` lists employers that
 posted roles like theirs in the last run and have a career site the script can read (it finds
-the site from their apply links, then by name), with how many open roles each has and how many
-look like theirs. Show the list; add the ones they want with `jh companies discover --add`, or
+the site from their apply links, then a public directory of ~24,000 companies' careers sites,
+then by guessing the board name), with how many open roles each has and how many look like theirs. Show the list; add the ones they want with `jh companies discover --add`, or
 `jh companies add "Name"` for individual ones. Staffing agencies are skipped.
 
 **From research.** Use WebSearch to build a list of 15-30 employers known for this kind of work
@@ -115,6 +123,17 @@ Don't ask for or save ID numbers, account numbers, date of birth, passwords, or 
 refuses them; don't try another wording, and don't write them in any other file either.
 
 ## 6. Optional extras
+
+- **Visa sponsorship:** if they need it now or later, set `filters.needs_sponsorship: true` in
+  `profile.yaml`. Postings that say they won't sponsor (or need U.S. citizenship or a clearance)
+  are then excluded, with the reason in `excluded.csv`. For employers' H-1B history, they download
+  the CSV from USCIS's H-1B Employer Data Hub in their browser and run
+  `jh data import-sponsors <file>`.
+- **Pay estimates** for postings without pay come from BLS (on by default). Without a key BLS
+  allows 25 requests a day per network, which is usually enough because results are cached for
+  months. A free key (`BLS_API_KEY` in `.env`, from data.bls.gov/registrationEngine) raises it.
+- **Smarter title matching:** `pip install -e ".[ml]"` adds the JobBERT title model (about 2 GB
+  with PyTorch). Worth it if their field uses many different titles for the same job.
 
 - **More sources:** free API keys for Adzuna, USAJobs and Jooble go in `.env` next to
   `profile.yaml` (`ADZUNA_APP_ID=...`). `jh check` shows which sources are on.

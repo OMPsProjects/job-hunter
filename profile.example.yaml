@@ -146,6 +146,10 @@ ranking:
   unverified_multiplier: 0.85  # jobs not yet confirmed on the employer's site rank a bit lower
   max_age_days: 30             # freshness hits 0 at this age
   low_fit_threshold: 40        # jobs with fit under this are scaled down, whatever the pay or city
+  pay_estimates: true          # no posted pay: use BLS's typical pay for the occupation and metro,
+                               #   at half strength (never a reason to exclude a job)
+  title_model: auto            # auto: use the JobBERT title model if installed (pip install -e ".[ml]"); off: never
+  repost_multiplier: 1.0       # re-listed postings are flagged in gaps; below 1.0 also ranks them lower
 
 # Hard filters: these jobs never reach the ranked list (they're listed in excluded.csv).
 filters:
@@ -153,6 +157,8 @@ filters:
   allow_companies: []          # exceptions to exclude_companies
   exclude_keywords: []         # checked in the title and the top of the description
   already_applied: []          # "Company | Title"; applications.csv is checked too
+  needs_sponsorship: false     # true: drop postings that say they won't sponsor a visa or need U.S.
+                               #   citizenship / a clearance, and note employers' H-1B history
 
 # Confirm each posting on the employer's own careers site.
 verify:
@@ -160,6 +166,12 @@ verify:
   top_n: 150                   # verify the best N by keyword score (verification is slower)
   ats_overrides: {}            # company -> [ats, slug] when auto-discovery can't find their board
   #  Equinix: [workday, "equinix.wd1|equinix|External"]
+
+# The careers-site directory (public data) is downloaded to a cache folder; see
+# `job-hunter data status`. Pay figures (ranking.pay_estimates) and the title model
+# (ranking.title_model) have their own switches above.
+data:
+  auto_download: true          # download / refresh the careers-site directory when it's a month old
 
 # Your private files (all gitignored).
 candidate_file: candidate.yaml

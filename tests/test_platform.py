@@ -307,3 +307,21 @@ def test_label_sheet_survives_new_runs(tmp_path):
     assert len(merged) == 4 and set(merged.loc[merged["label"] != "", "job_url"]) == {"u1", "u2"}
     res = evalrank.evaluate(None, merged, {"fit": 100, "seniority": 0, "location": 0, "pay": 0, "freshness": 0})
     assert res and res["labeled"] == 2 and res["precision@10"] == 0.5
+
+
+def test_runlock_takes_over_from_a_killed_run(tmp_path):
+    import os
+    import subprocess
+
+    from jobhunter.fileio import RunLock
+    if os.name != "posix":
+        return
+    dead = subprocess.Popen(["true"])
+    dead.wait()
+    (tmp_path / ".run.lock").write_text(str(dead.pid))
+    with RunLock(tmp_path):
+        assert (tmp_path / ".run.lock").read_text() == str(os.getpid())
+    (tmp_path / ".run.lock").write_text(str(os.getppid()))  # a live process: still respected
+    import pytest
+    with pytest.raises(RuntimeError), RunLock(tmp_path):
+        pass

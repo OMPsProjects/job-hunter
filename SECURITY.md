@@ -13,7 +13,14 @@ what you saw and how to reproduce it, using the fictional example files, never y
   server and no telemetry.
 - **What goes over the network:** your search titles and cities go to the job boards and APIs
   you enable; company names go to ATS APIs during verification. With `--llm` or `resume --llm`,
-  your candidate summary and job descriptions go to the Anthropic API. Nothing else is sent.
+  your candidate summary and job descriptions go to the Anthropic API. Public reference data is
+  downloaded, with nothing about you in the request: the careers-site directory from
+  storage.stapply.ai (the ats-scrapers project), and BLS pay figures from api.bls.gov (the request
+  names an occupation code and a metro code). The optional title model downloads once from
+  Hugging Face and runs on your computer. Nothing else is sent.
+- **Reference data** lives in a cache folder outside your project (`job-hunter data status`
+  shows where). It holds public data, though the cached pay figures do show which occupations and
+  metros you've searched. Delete it any time.
 - **Private files** (`profile.yaml`, `candidate.yaml`, `answers.yaml`, `applications.csv`,
   `.env`, run logs and the run database) are written owner-only (mode 600) on macOS and Linux. On Windows they inherit your user
   folder's permissions. Use full-disk encryption (FileVault, BitLocker) for protection at rest.

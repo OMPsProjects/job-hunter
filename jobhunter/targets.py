@@ -63,7 +63,7 @@ class Targets:
         return None
 
     # -- adding ----------------------------------------------------------------
-    def add_company(self, name, kind, slug, track=None, source="you", confirmed=None):
+    def add_company(self, name, kind, slug, track=None, source="you", confirmed=None, how=None):
         existing = self.has_company(name, kind, slug)
         if existing:
             return False, f"{existing['name']} is already on the list ({existing['ats']}/{existing['slug']})"
@@ -72,7 +72,8 @@ class Targets:
             entry["track"] = track
         entry.update({"source": source, "added": dt.date.today().isoformat()})
         if confirmed is False:
-            entry["note"] = "board found by name guess; check it's the right company"
+            entry["note"] = ("found in the careers-site directory by name" if how == "directory"
+                             else "board found by name guess") + "; check it's the right company"
         self.companies.append(entry)
         self.save()
         return True, f"added {name} ({kind}/{slug})"
@@ -134,17 +135,25 @@ def add_by_name(targets: Targets, name, track=None):
     if not found.get("ats"):
         why = "" if found.get("definitive", True) else " (some lookups failed; try again later)"
         return False, f"Couldn't find a readable career site for {name}{why}. {hint}"
-    try:
-        postings = ats.list_postings(found["ats"], name, found["slug"], with_description=False)
-    except Exception:
-        postings = []
+    postings = _postings(found, name)
+    if not postings and found.get("how") == "directory":  # the directory can be out of date
+        retry = discover(name, use_directory=False)
+        if retry.get("ats"):
+            found, postings = retry, _postings(retry, name)
     if not postings:
         # a name match on an empty board is usually someone else's dormant account
         return False, (f"Found a {found['ats']} board called '{found['slug']}', but it lists no open roles, "
                        f"so it's probably not {name}'s. {hint}")
     ok, msg = targets.add_company(name, found["ats"], found["slug"], track=track, source="you",
-                                  confirmed=found.get("confirmed"))
+                                  confirmed=found.get("confirmed"), how=found.get("how"))
     return ok, f"{msg}: {len(postings)} open roles right now" if ok else msg
+
+
+def _postings(found, name):
+    try:
+        return ats.list_postings(found["ats"], name, found["slug"], with_description=False)
+    except Exception:
+        return []
 
 
 # ----------------------------- discovery -------------------------------------
@@ -222,7 +231,7 @@ def discover_companies(targets: Targets, employers, profile=None, limit=40, add=
             elif add:
                 confirmed = found.get("confirmed") or row["matching"] > 0
                 ok, msg = targets.add_company(name, found["ats"], found["slug"], track=track, source="discovered",
-                                              confirmed=confirmed)
+                                              confirmed=confirmed, how=found.get("how"))
                 row["status"] = "added" if ok else msg
             else:
                 row["status"] = "found"

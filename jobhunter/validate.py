@@ -29,13 +29,14 @@ PROFILE_SCHEMA = {
                 "max_raw": NUM, "min_score": NUM},
     "ranking": {"weights": dict, "pay_floor": NUM, "pay_target": NUM, "pay_floor_is_hard": bool,
                 "remote_rank_as": str, "unverified_multiplier": NUM, "max_age_days": NUM,
-                "low_fit_threshold": NUM},
+                "low_fit_threshold": NUM, "title_model": ANY, "pay_estimates": bool, "repost_multiplier": NUM},
     "filters": {"exclude_companies": [str], "allow_companies": [str], "exclude_keywords": [str],
-                "already_applied": [str]},
+                "already_applied": [str], "needs_sponsorship": bool},
     "verify": {"enabled": bool, "top_n": int, "ats_overrides": dict},
     "llm": {"model": str, "top_n": int, "candidate_summary": str},
     "review": dict,
     "setup": dict,
+    "data": {"auto_download": bool},
 }
 
 

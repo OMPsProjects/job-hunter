@@ -167,6 +167,40 @@ def _parse(kind, raw, default, say=None):
     return str(raw or "").strip()
 
 
+def _numbered(raw, options):
+    """'1, 3, Credit Officer' -> [options[0], options[2], 'Credit Officer']."""
+    items = raw if isinstance(raw, list) else _split(raw)
+    out = []
+    for x in items:
+        x = str(x).strip()
+        if x.isdigit() and 1 <= int(x) <= len(options):
+            out.append(options[int(x) - 1])
+        elif x:
+            out.append(x)
+    return ", ".join(dict.fromkeys(out))
+
+
+def _hints(key, out, say):
+    """Before some questions, show suggestions from occupation data. Returns the numbered options."""
+    from . import occupations
+    if key not in ("adjacent_titles", "skills") or not out.get("titles"):
+        return []
+    sug = occupations.suggestions(out["titles"] + (out.get("adjacent_titles") or []))
+    if key == "adjacent_titles":
+        if sug["matched"]:
+            say("  Your titles map to: " + "; ".join(f"{m['title']}" for m in sug["matched"]))
+        options = [r["title"] for r in sug["related_titles"]]
+        label = "Titles in related occupations"
+    else:
+        options = sug["skills"]
+        label = "Skills postings in these occupations often ask for"
+    if options:
+        say(f"  {label} (type numbers to include them, plus any of your own):")
+        say("    " + "  ".join(f"{i}) {o}" for i, o in enumerate(options, 1)))
+        say(f"  ({occupations.ATTRIBUTION})")
+    return options
+
+
 def ask_all(answers_in: dict | None = None, ask=input, say=print):
     """Collect answers. Keys in answers_in are used as given; anything missing is asked (or, when
     `ask` is None, left at its default)."""
@@ -179,9 +213,12 @@ def ask_all(answers_in: dict | None = None, ask=input, say=print):
         if ask is None:
             out[key] = _parse(kind, "", default, say=say)
             continue
+        options = _hints(key, out, say)
         while True:
             suffix = f" [{default}]" if default else ""
             raw = ask(f"\n{prompt}{suffix}\n> ").strip()
+            if options:
+                raw = _numbered(raw, options)
             val = _parse(kind, raw, default, say=say)
             if key == "titles" and not val:
                 say("  At least one title is needed; that's what gets searched.")
@@ -191,6 +228,8 @@ def ask_all(answers_in: dict | None = None, ask=input, say=print):
                 continue
             break
         out[key] = val
+    if isinstance(answers_in.get("occupations"), dict):  # track -> occupation code, chosen in chat
+        out["occupations"] = answers_in["occupations"]
     return out
 
 
@@ -213,6 +252,23 @@ def region_for(city: str):
         return METROS[name]
     key = re.sub(r"[^a-z]", "", name)[:6] or "city"
     return key, re.escape(name)
+
+
+def track_occupations(tracks, given=None):
+    """track -> occupation code (for pay estimates): as given, else the first title that matches
+    a known job title exactly."""
+    from . import occupations
+    out = {}
+    for track, titles in tracks.items():
+        if isinstance(given, dict) and given.get(track):
+            out[track] = str(given[track])
+            continue
+        for t in titles:
+            m = occupations.match(t)
+            if m and m["score"] >= 0.9:
+                out[track] = m["code"]
+                break
+    return out
 
 
 def build_profile(a: dict) -> dict:  # noqa: C901
@@ -282,7 +338,7 @@ def build_profile(a: dict) -> dict:  # noqa: C901
                    "resume_rules": ["write a new resume for each job from its description; it must not read as AI-written",
                                     "1 page if the posting asks for under 5 years of experience, otherwise 2 pages"]},
         "setup": {"field": a.get("field"), "discover_companies": bool(a.get("discover_companies")),
-                  "created": dt.date.today().isoformat()},
+                  "created": dt.date.today().isoformat(), "occupations": track_occupations(tracks, a.get("occupations"))},
     }
     # drop empty values so the file stays readable
     prof["ranking"] = {k: v for k, v in prof["ranking"].items() if v not in (None, "")}

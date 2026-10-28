@@ -109,12 +109,17 @@ class Profile:
         self.unverified_multiplier = float(rk.get("unverified_multiplier", 0.85))
         self.max_age_days = float(rk.get("max_age_days", 30))
         self.low_fit_threshold = float(rk.get("low_fit_threshold", 40))
+        # 'auto' uses the JobBERT title model when it's installed (pip install -e ".[ml]")
+        self.title_model = rk.get("title_model", "auto")
+        self.pay_estimates = bool(rk.get("pay_estimates", True))  # BLS pay when a posting has none
+        self.repost_multiplier = float(rk.get("repost_multiplier", 1.0))  # 1.0 = flag re-listed jobs only
 
         fl = data.get("filters", {}) or {}
         self.exclude_companies = [str(c) for c in fl.get("exclude_companies", []) or []]
         self.allow_companies = [str(c) for c in fl.get("allow_companies", []) or []]
         self.exclude_keywords = [str(k).lower() for k in fl.get("exclude_keywords", []) or []]
         self.already_applied = [str(a) for a in fl.get("already_applied", []) or []]
+        self.needs_sponsorship = bool(fl.get("needs_sponsorship", False))
 
         vf = data.get("verify", {}) or {}
         self.verify_enabled = bool(vf.get("enabled", True))
@@ -132,6 +137,10 @@ class Profile:
         self.tracker_file = data.get("tracker_file", "applications.csv")
         self.browse_boards = list(data.get("browse_boards", []) or [])
         self.review = data.get("review", {}) or {}
+        self.auto_download = bool((data.get("data") or {}).get("auto_download", True))
+        # track -> O*NET-SOC occupation code, chosen in setup; used for pay estimates
+        self.track_occupations = {str(k): str(v) for k, v in
+                                  (((data.get("setup") or {}).get("occupations")) or {}).items() if v}
         self.raw = data
 
         # companies.yaml (managed by `job-hunter companies` / `boards`): merged in, not copied.
@@ -157,6 +166,18 @@ class Profile:
         if v == "auto":
             return all(os.environ.get(k) for k in SOURCE_KEYS.get(name, []))
         return bool(v)
+
+    def occupation_for_track(self, track):
+        """The occupation code for a track: the one chosen in setup, else the closest match to
+        the track's search titles (None when none match well)."""
+        if track in self.track_occupations:
+            return self.track_occupations[track]
+        from .occupations import match
+        for title in self.tracks.get(track, []):
+            m = match(title)
+            if m and m["score"] >= 0.9:
+                return m["code"]
+        return None
 
     def all_titles(self):
         """(track, title) pairs, in profile order."""

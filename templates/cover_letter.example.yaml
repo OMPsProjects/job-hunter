@@ -1,0 +1,14 @@
+# A cover letter for `job-hunter render` and `job-hunter lint`. Fictional example.
+name: Jordan Rivera
+contact: ["Chicago, IL", "jordan.rivera@example.com", "(312) 555-0199"]
+date: October 28, 2026
+recipient: [Hiring Team, Example Bank, Chicago, IL]
+greeting: Dear Hiring Team,
+paragraphs:
+  - Your posting asks for an underwriter who can take a bridge loan from first look to credit
+    committee without much hand-holding. That has been most of my last four years at Example
+    Lending, where I underwrote 40 bridge and construction loans.
+  - The work I'd point to first is the credit memo template I rebuilt in 2024. It cut the time
+    from term sheet to committee by about a week, and the team still uses it.
+  - I'd welcome the chance to talk about the role.
+closing: Sincerely,

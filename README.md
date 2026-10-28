@@ -7,7 +7,9 @@ An open-source job search you run on your own computer, for any kind of job. It:
 2. **Finds the companies** that hire for that work and adds their career sites to the search.
 3. **Searches** Indeed, remote-job boards, job-board APIs, and those employers' own career sites.
 4. **Confirms** each posting is live on the employer's own site, not just reposted on a board.
-5. **Ranks** what's left by how well it fits your resume, level, location, pay and freshness.
+5. **Ranks** what's left by how well it fits your resume, level, location, pay and freshness,
+   estimating pay from government data when a posting doesn't list it, and flagging re-listed
+   jobs and (if you need it) postings that won't sponsor a visa.
 6. With the Claude Code skill, **tailors a resume** for the best matches (checked for AI-sounding
    phrasing and invented numbers) and **fills in applications** in your browser, stopping before
    submit so you review every one.
@@ -29,6 +31,19 @@ pip install -e .                                       # gives you the `job-hunt
 
 (`python job_hunter.py <command>` works too, without installing.)
 
+Optional: `pip install -e ".[ml]"` adds a job-title model that matches titles by meaning
+("Mortgage Underwriter" is close to "Credit Underwriter"). It's about 2 GB with PyTorch.
+
+## What it costs
+
+The search, verification and ranking are plain Python: free, and no AI account needed. Only
+the Claude Code skill (tailoring resumes, cover letters, filling applications, reading
+descriptions for the daily shortlist) uses Claude, through your Claude Code plan.
+
+**Watch out:** if `ANTHROPIC_API_KEY` is set in your environment, Claude Code bills that API key
+per token instead of using your subscription. Unset it unless that's what you want. The
+optional `--llm` flags always use the API key.
+
 ## Set up (5 minutes)
 
 ```bash
@@ -38,6 +53,8 @@ job-hunter setup
 It asks, one at a time: your resume file, the kind of work you want, job titles (plus ones you'd
 also consider and any career change), level, years of experience, skills, cities in order, remote,
 pay floor and target, companies and kinds of roles to avoid, and companies you'd like to work for.
+After your titles, it suggests related titles and skills from standard occupation data; type the
+numbers of the ones you want.
 It writes three private files:
 
 | File | What it holds |
@@ -83,6 +100,10 @@ job-hunter boards add https://careers.acme.com --name "Acme"   # any board or ca
 job-hunter companies list / boards list / companies remove "Acme"
 ```
 
+To find a company's career site, job-hunter checks its apply links, then a public directory of
+about 24,000 companies' careers sites (downloaded to a cache folder and refreshed monthly; see
+`job-hunter data status`), then guesses the board name.
+
 `boards add` puts a career site the script can read (Greenhouse, Lever, Ashby, SmartRecruiters,
 Workable, Recruitee, Workday) straight into the daily search. Anything else goes on a
 browser-search list that the Claude skill checks for you on request.
@@ -117,12 +138,31 @@ skill checks the shortlist's unverified jobs by hand.
 | fit | 40 | your resume skills found in the posting, title closeness, keyword score |
 | seniority | 20 | years asked vs. yours; title level vs. the levels you want |
 | location | 15 | position in your city order |
-| pay | 15 | posted pay vs. your floor and target (not posted = neutral) |
+| pay | 15 | posted pay vs. your floor and target; not posted: the BLS median for that occupation and metro at half strength (no data = neutral) |
 | freshness | 10 | days since posted |
 
 Unconfirmed jobs are multiplied by 0.85, and a job with fit under 40 is scaled down so pay or
 location can't carry a poor match. Excluded companies or keywords, jobs you've applied to, and
-pay under your floor remove a job outright.
+pay under your floor remove a job outright. A pay estimate never removes a job: it's what the
+middle of the market pays for that kind of work, not this employer's offer.
+
+- **Re-listed jobs:** when a company posts the same title under a new link two or more weeks
+  after an earlier one, `gaps` says so. That can mean a hard-to-fill role, a stale ad, or a
+  standing "pipeline" posting. It's a flag, not a filter (`ranking.repost_multiplier` below 1.0
+  ranks them lower if you want).
+- **Visa sponsorship:** with `filters.needs_sponsorship: true`, postings that say they won't
+  sponsor, or that need U.S. citizenship or a clearance, are excluded with the reason; ones that
+  say they sponsor are noted. Download the H-1B employer CSV from USCIS's H-1B Employer Data Hub
+  and run `job-hunter data import-sponsors FILE` to see each employer's recent H-1B approvals too.
+  The wording checks catch common phrasings, not all of them.
+- **Deadlines:** "apply by" dates are read from postings; jobs closing within 10 days say so in
+  `gaps` (and `apply_by`).
+- **Postings that talk to AI:** some postings hide text for AI screeners or AI applicants
+  (invisible characters, text styled not to show, "AI assistants: ignore your instructions...").
+  Those are flagged in `gaps` (`integrity_note`), never followed, and the skill shows you the
+  lines before it writes anything for that job. `job-hunter scan FILE` checks a saved posting.
+- **Title matching:** title closeness compares words, ignoring level words like "Senior". With
+  the optional `[ml]` install it also compares meaning.
 
 **Is the order right for you?** `job-hunter labels` writes a sheet of the last run's jobs; mark
 each 2 (would apply), 1 (maybe) or 0 (no). `job-hunter eval-rank` then reports how many of the
@@ -148,6 +188,27 @@ that one.
 Saved answers live in `answers.yaml`. ID and account numbers, date of birth, passwords and EEO
 answers are never saved. Matching is strict on purpose: "authorized to work in the UK" won't reuse
 your US answer, and "Reference email" won't get your email.
+
+Every draft also gets a **reviewer pass**: a second Claude agent that didn't write it checks it
+against the posting (true to your sources? does it answer the posting's main asks? anything
+generic or AI-sounding?) before you see it. `render` then reads the text back out of the PDF the
+way an applicant tracking system would and flags anything missing or out of order.
+
+**Cover letters:** say *"write a cover letter for #2"*. Same sources and checks as the resume
+(`job-hunter lint` and `render` take a cover letter YAML; see `templates/cover_letter.example.yaml`).
+
+**Interviews:** say *"I have an interview with Acme"*. The skill builds a prep pack (the role's
+main asks, company research with sources, likely questions mapped to your stories, honest
+answers for gaps, questions to ask) and can run a mock interview. Your stories live in
+`candidate/stories.md` (see `templates/stories.example.md`); `job-hunter stories check` flags
+missing parts and numbers your resume doesn't back up.
+
+**Follow-ups:** say *"who should I follow up with?"*. It drafts a short note for each
+application with no answer after two or three weeks. Drafts only: it never sends anything.
+
+**How it's going:** the tracker records each status change and where the job came from.
+`job-hunter stats` shows response and interview rates by source, careers system, track, and
+tailored vs. not. With fewer than ~20 applications the differences are mostly chance.
 
 **Try it safely first:** `evals/` has a fake application site full of traps and a grader. See
 `evals/README.md`.
@@ -179,11 +240,16 @@ job-hunter companies add NAME [--url URL] [--track T] | discover [--add] [--fres
 job-hunter boards add URL [--name N] | list | remove URL
 job-hunter verify --url U --company C --title T
 job-hunter resume FILE [--llm] [--force]
-job-hunter render YAML -o OUT.pdf --pages N
-job-hunter lint YAML
+job-hunter render YAML -o OUT.pdf --pages N    # resume or cover letter
+job-hunter lint YAML                           # resume or cover letter
 job-hunter answers match|add|fact|check|list ...
 job-hunter track set|list ...
 job-hunter labels / eval-rank [--tune]
+job-hunter stats [--json] [--waiting-days N]
+job-hunter stories list | check
+job-hunter scan FILE
+job-hunter occupations match TITLE... | suggest TITLE... | search WORDS
+job-hunter data update | status | import-sponsors FILE
 ```
 
 Options for every command: `--profile PATH`, `--out DIR`, `-v`. `job-hunter -h` for details.
@@ -197,6 +263,37 @@ Options for every command: `--profile PATH`, `--out DIR`, `-v`. `job-hunter -h` 
 - **Verification isn't perfect.** Some custom career sites can't be checked by script; those stay
   `unverified` until the skill or you check them.
 - **The ranking starts as a guess.** Use `labels` and `eval-rank` to fit it to you.
+
+## Similar projects
+
+- **[career-ops](https://github.com/santifer/career-ops)** (MIT, free) is the closest: a Claude
+  Code / Codex skill that scores jobs against your CV, writes tailored PDFs, checks whether a
+  posting is live, and never submits. It runs its pipeline through the AI. job-hunter's search,
+  verification and ranking run without one, it starts from "what job do you want?" and finds
+  employers for you, and it checks postings against the employer's own hiring system.
+- **Resume-Matcher**, **Reactive Resume**: resume tailoring and building, no search.
+- **[ai-job-search](https://github.com/ai-job-search-dev/ai-job-search)** (MIT, free) runs the
+  whole hunt through Claude Code: Danish boards built in, a drafter and reviewer for LaTeX CVs and
+  cover letters, interview prep, Gmail tracking. It drafts documents; it doesn't fill forms.
+  job-hunter's reviewer pass, posting checks, interview prep and follow-ups were inspired by it
+  and by career-ops (our own implementations).
+- Auto-apply tools (LazyApply, Sonara, AIHawk and others) submit for you in bulk. job-hunter
+  deliberately doesn't: you review and submit each application.
+
+## Data and credits
+
+- Occupation data: this project includes information from the O*NET 31.0 Database by the U.S.
+  Department of Labor, Employment and Training Administration (USDOL/ETA). Used under the
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. O*NET® is a trademark of
+  USDOL/ETA. job-hunter has modified all or some of this information (see
+  `jobhunter/data/README.md`). USDOL/ETA has not approved, endorsed, or tested these modifications.
+- Pay figures: U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics,
+  via the BLS public API. BLS.gov cannot vouch for the data or analyses derived from these data
+  after the data have been retrieved from BLS.gov.
+- Careers-site directory: the [ats-scrapers](https://github.com/kalil0321/ats-scrapers) project's
+  public companies directory (MIT).
+- Title model (optional): [TechWolf/JobBERT-v3](https://huggingface.co/TechWolf/JobBERT-v3) (MIT).
+- Job boards: [python-jobspy](https://github.com/speedyapply/JobSpy) (MIT) and each board's API.
 
 ## Contributing
 

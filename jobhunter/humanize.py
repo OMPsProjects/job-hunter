@@ -80,6 +80,29 @@ def lint_text(text, bullets=None):
     return issues
 
 
+LETTER_OPENERS = re.compile(
+    r"^\s*(i am writing to (express|apply)|i am (excited|thrilled|eager) to apply|please accept (this|my) "
+    r"(letter|application)|i would like to (express|apply)|it is with (great )?(enthusiasm|excitement))", re.I)
+
+
+def lint_letter(paragraphs):
+    """Cover-letter checks on top of lint_text: length, and openers every reader has seen before."""
+    paras = [str(x) for x in paragraphs or [] if str(x).strip()]
+    text = "\n".join(paras)
+    issues = [i for i in lint_text(text) if "bullet starts with" not in i[1]]  # letters may start with 'I'
+    words = len(text.split())
+    if words > 300:
+        issues.append(("warn", f"{words} words: keep a cover letter under 300"))
+    if len(paras) > 5:
+        issues.append(("warn", f"{len(paras)} paragraphs: 3 or 4 is plenty"))
+    if paras and LETTER_OPENERS.search(paras[0]):
+        issues.append(("error", "stock opening line: start with why this job, or what you did that fits it"))
+    starts_i = sum(1 for p in paras if re.match(r"\s*I\b", p))
+    if starts_i >= 3:
+        issues.append(("warn", f"{starts_i} paragraphs start with 'I'"))
+    return issues
+
+
 # ----------------------------- fact check -----------------------------------
 
 _MONEY = re.compile(r"\$\s?(\d+(?:[.,]\d+)*)\s*(k|m|mm|b|bn|million|billion|thousand)?\b", re.I)

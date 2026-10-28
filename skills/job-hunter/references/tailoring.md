@@ -46,20 +46,28 @@ Fix every `[error]`. Warnings are judgment calls. An error saying a number isn't
 resume means one of two things: you introduced it (remove it), or it's true and derived (ask
 the user, then add it to `candidate/career_facts.md` so it passes next time).
 
-## 5. Render and check
+## 5. Reviewer pass
+
+Have a separate agent review the draft with `references/review-rubric.md`, apply the fixes that
+are clearly right, and lint again.
+
+## 6. Render and check
 
 ```
 jh render applications/<folder>/resume.yaml -o "applications/<folder>/<First>_<Last>_Resume_<Company>.pdf" --pages <1|2>
 ```
 
 It shrinks the font slightly (not below 8.75pt) to fit. If it still overflows, cut the weakest
-bullets and render again. Open the PDF (Read tool) and look at it: no orphaned headings,
+bullets and render again. It also reads the text back out of the PDF the way an applicant
+tracking system would: lines starting `[ats]` (exit code 3) mean something didn't come out, or
+came out of order. Fix those before using the PDF. Open the PDF (Read tool) and look at it: no orphaned headings,
 nothing cut off, dates aligned.
 
-## 6. Record
+## 7. Record
 
 ```
 jh track set --status tailored --company "..." --title "..." --resume "<pdf path>"
 ```
 
 Tell the user what you emphasized, what you left out, and the gaps, in 3-4 lines per job.
+If the posting asks for a cover letter, write it next: `references/cover-letters.md`.

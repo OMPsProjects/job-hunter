@@ -23,6 +23,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from . import datasets
 from .common import UA, HTTPError, company_key, http_json, title_similarity
 from .fileio import write_text_atomic
 from .logs import log
@@ -91,9 +92,34 @@ def _probe(kind, slug, company):
     return False, False
 
 
-def discover(company):
-    """Find a company's public ATS board. Returns dict(ats, slug, confirmed), or
+_SIDE_SITES = re.compile(r"campus|intern|universit|student|graduate|alumni|early|contingent|internal|temp|store|retail|"
+                         r"hourly|warehouse|driver", re.I)
+
+
+def _directory_pick(hits):
+    """One board from the directory's entries for a company. Workday companies often run several
+    sites (careers, campus, internal); prefer the main external one."""
+    def rank(h):
+        kind, slug, _ = h
+        site = slug.split("|")[-1]
+        return (bool(_SIDE_SITES.search(site)), not re.search(r"external|career|jobs", site, re.I), len(site))
+    return sorted(hits, key=rank)[0]
+
+
+def discover(company, use_directory=True):
+    """Find a company's public ATS board: the careers-site directory first (see datasets.py), then
+    by probing likely board names. Returns dict(ats, slug, confirmed, how), or
     dict(ats=None, definitive=bool): definitive=False means some lookups failed, so try again later."""
+    if use_directory:
+        try:
+            hits = datasets.directory_lookup(company)
+        except Exception:
+            hits = []
+        if hits:
+            kind, slug, _ = _directory_pick(hits)
+            # Never 'confirmed': the directory matches names, and names collide ('EQT Corporation' vs
+            # 'EQT Partners'). An unconfirmed board can verify a job but can't rule one out.
+            return {"ats": kind, "slug": slug, "confirmed": False, "how": "directory"}
     definitive = True
     for slug in slug_candidates(company):
         for kind in PROBE_ORDER:
@@ -103,7 +129,7 @@ def discover(company):
                 definitive = False
                 continue
             if ok:
-                return {"ats": kind, "slug": slug, "confirmed": confirmed}
+                return {"ats": kind, "slug": slug, "confirmed": confirmed, "how": "name guess"}
     return {"ats": None, "definitive": definitive}
 
 

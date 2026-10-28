@@ -66,7 +66,7 @@ class RunLock:
             fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
             age = time.time() - self.path.stat().st_mtime
-            if age < self.stale:
+            if age < self.stale and self._holder_alive():
                 raise RuntimeError(
                     f"Another search is already writing to {self.path.parent} (started {age / 60:.0f} min ago). "
                     f"If it crashed, delete {self.path} and run again.") from None
@@ -75,6 +75,26 @@ class RunLock:
         with os.fdopen(fd, "w") as fh:
             fh.write(str(os.getpid()))
         return self
+
+    def _holder_alive(self) -> bool:
+        """False when the lock names a process that no longer exists (a run that was killed).
+        Only checked on macOS/Linux: on Windows os.kill(pid, 0) would end the process, so there
+        the lock just expires after `stale_hours`."""
+        if os.name != "posix":
+            return True
+        try:
+            pid = int(self.path.read_text().strip())
+        except (OSError, ValueError):
+            return True
+        if pid == os.getpid():
+            return True
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True  # exists, owned by someone else
+        return True
 
     def __exit__(self, *exc):
         self.path.unlink(missing_ok=True)

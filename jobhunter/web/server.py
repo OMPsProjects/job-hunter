@@ -659,14 +659,29 @@ def make_handler(app: App):
     return Handler
 
 
+def _already_running(port):
+    try:
+        import urllib.request
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+            return b'name="jh-token"' in r.read(4096)
+    except Exception:
+        return False
+
+
 def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready=None):
     """Run until Ctrl+C. `ready(server, app)` is called once listening (tests use it)."""
     app = App(profile_path, port)
     try:
         server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
     except OSError as e:
-        print(f"Can't open port {port} ({e.strerror}). If job-hunter ui is already running, use that window, "
-              f"or start another with --port {port + 1}.", file=sys.stderr)
+        if _already_running(port):  # double-clicked Start twice: just show the one that's open
+            print(f"job-hunter is already running at http://127.0.0.1:{port}/ ; opening it.", flush=True)
+            if open_browser:
+                import webbrowser
+                webbrowser.open(f"http://127.0.0.1:{port}/")
+            return 0
+        print(f"Can't open port {port} ({e.strerror}). Something else is using it; start job-hunter with "
+              f"--port {port + 1}.", file=sys.stderr)
         return 1
     app.port = server.server_address[1]
     server.daemon_threads = True

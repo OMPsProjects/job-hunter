@@ -758,6 +758,7 @@ function renderSetupReview() {
           ];
         })(),
         h("p", {}, "Next, run your first search. It takes 10 to 30 minutes."),
+        state.status && state.status.folder ? h("p", { class: "small muted" }, `Your files are in ${state.status.folder}`) : null,
         h("div", { class: "row" }, h("a", { class: "btn primary", href: "#search" }, "Go to search"))));
     } catch (e) {
       if (e.status === 409 && !force) {
@@ -824,7 +825,8 @@ async function viewSettings() {
   const checkRow = (control, label, hint) => h("div", { class: "check" }, control, h("label", { for: control.id }, label, hint ? h("span", { class: "hint" }, hint) : null));
   setMain(h("form", { class: "stack", onsubmit: save, style: "max-width: 70ch" },
     h("div", { class: "page-head" }, h("h1", {}, "Settings"),
-      h("p", { class: "muted" }, "The rest of your search (titles, places, skills) is in profile.yaml, or run Setup again.")),
+      h("p", { class: "muted" }, "The rest of your search (titles, places, skills) is in profile.yaml, or run Setup again."),
+      state.status && state.status.folder ? h("p", { class: "small muted" }, `Your files are in ${state.status.folder}`) : null),
     h("h2", {}, "Pay"),
     h("div", { class: "row" }, fieldRow("Lowest pay", floor, "Per year"), fieldRow("Target pay", target, "Per year")),
     checkRow(hardFloor, "Drop jobs that post pay under the lowest", "Jobs that don't post pay are kept."),

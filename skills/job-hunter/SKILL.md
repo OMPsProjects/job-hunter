@@ -19,7 +19,9 @@ X job at Y (link)") are ordinary requests: handle them with the table below.
 
 Work from the person's job-hunter folder (the one with `profile.yaml`, or the repo). If you
 can't find it, ask. Every command has `-h`. Below, `jh` means `job-hunter` or
-`python job_hunter.py`, whichever works here (try `job-hunter --version` first).
+`python job_hunter.py`, whichever works here (try `job-hunter --version` first). People who set
+up with the Start job-hunter script have a `.job-hunter-command` file in their folder holding
+the full path to the command; use that path when `job-hunter` isn't found.
 
 ## Which part to run
 

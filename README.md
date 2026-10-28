@@ -21,7 +21,30 @@ your say-so.
 
 ## Install
 
-Python 3.10 or newer.
+**The easy way (Windows, Mac, Linux): no terminal needed.**
+
+1. On this page, click **Code**, then **Download ZIP**. Unzip it somewhere you'll keep it, like
+   your Documents folder.
+2. Open the unzipped folder and start job-hunter:
+   - **Windows:** double-click **Start job-hunter.bat**. If Windows says it protected your PC,
+     click **More info**, then **Run anyway** (it's a plain-text script; open it in Notepad to read
+     it first if you like).
+   - **Mac:** right-click **Start job-hunter.command** and choose **Open**. If your Mac still
+     refuses, open **System Settings > Privacy & Security** and click **Open Anyway**. Macs ask
+     this once for any script downloaded from the internet.
+   - **Linux:** run `./start.sh`.
+3. The first time, it sets itself up, which takes 2-5 minutes. If your computer doesn't have
+   Python, it offers to download a private copy just for job-hunter (using
+   [uv](https://docs.astral.sh/uv/) from Astral; no admin rights needed). It also offers a desktop
+   shortcut (Windows) and, if you use Claude Code, to add the job-hunter skill.
+4. Your browser opens job-hunter. Keep the small black window open while you use it; close it to stop.
+
+After that, double-click the same file (or the desktop shortcut) whenever you want job-hunter.
+Your files (profile, resume, results) live in **Documents/job-hunter**, separate from the
+program, so a new version never touches them. To update, download the new ZIP, unzip it, and
+start it the same way.
+
+**The developer way.** Python 3.10 or newer:
 
 ```bash
 git clone https://github.com/OWNER/job-hunter && cd job-hunter

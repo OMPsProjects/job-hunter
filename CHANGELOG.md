@@ -7,6 +7,10 @@
   applications, companies and boards, stats, a one-question-per-page setup, and settings. The AI
   steps copy a ready-made request for Claude Code. `scripts/make_demo.py` builds a folder of
   fictional data to try it with.
+- **Start job-hunter** for Windows (`.bat`), Mac (`.command`) and Linux (`start.sh`): download the
+  ZIP, double-click, and it installs itself (offering a private Python via uv if there isn't one),
+  keeps your files in Documents/job-hunter, offers a desktop shortcut and the Claude Code skill,
+  and opens the page. Double-clicking again reopens the page that's already running.
 - Settings saved from the page keep your profile.yaml comments (new dependency: ruamel.yaml), and
   re-running setup keeps details it doesn't ask about (old files saved as `.bak`, owner-only).
 

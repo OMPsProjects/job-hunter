@@ -30,3 +30,6 @@ dist/
 htmlcov/
 .venv/
 venv/
+
+# written by the Start job-hunter scripts
+.job-hunter-command

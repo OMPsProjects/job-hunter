@@ -42,6 +42,7 @@ import argparse
 import contextlib
 import datetime as dt
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -642,7 +643,8 @@ def cmd_ui(p, args):
     # The folder you start it in (unlike other commands, it doesn't fall back to the code's folder:
     # setup from the page writes files, and they belong where you are).
     path = Path(args.profile) if args.profile else Path.cwd() / "profile.yaml"
-    return serve(path, port=args.port, open_browser=not args.no_browser)
+    no_browser = args.no_browser or bool(os.environ.get("JOBHUNTER_NO_BROWSER"))
+    return serve(path, port=args.port, open_browser=not no_browser)
 
 
 def cmd_scan(p, args):

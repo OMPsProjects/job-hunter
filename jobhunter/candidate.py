@@ -91,7 +91,8 @@ def guess_years(text):
     """Years of experience from date ranges like '2011 - 2016' / 'Jan 2019 – Present'."""
     this_year = dt.date.today().year
     spans = []
-    for m in re.finditer(r"((?:19|20)\d{2})\s*(?:-|–|—|to)\s*((?:19|20)\d{2}|present|current|now)", text, re.I):
+    month = r"(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*|\d{1,2}/)?"
+    for m in re.finditer(rf"((?:19|20)\d{{2}})\s*(?:-|–|—|to)\s*{month}((?:19|20)\d{{2}}|present|current|now)", text, re.I):
         start = int(m.group(1))
         end = this_year if not m.group(2)[0].isdigit() else int(m.group(2))
         if 1970 <= start <= end <= this_year:

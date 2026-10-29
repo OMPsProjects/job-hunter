@@ -124,6 +124,8 @@ def suggestions(titles, limit_titles=12, limit_skills=15):
         if not m:
             continue
         matched.append({"query": t, **m})
+        if m["score"] < 0.8:
+            continue  # a loose match ('CRE underwriter' -> insurance underwriters) suggests the wrong field
         related_codes += [c for c in occ[m["code"]].get("r", []) if c not in related_codes]
     mine = {m["code"] for m in matched}
     have = {norm(t) for t in titles}
@@ -139,6 +141,8 @@ def suggestions(titles, limit_titles=12, limit_skills=15):
             break
     skills = []
     for m in matched:
+        if m["score"] < 0.8:
+            continue
         o = occ[m["code"]]
         for s in o.get("s", []) + o.get("k", []):
             if s not in skills and s.lower() not in _GENERIC_SKILLS:

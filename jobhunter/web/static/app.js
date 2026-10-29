@@ -178,7 +178,7 @@ function splitList(text) { return String(text || "").split(/[\n,]+/).map((s) => 
 const state = {
   status: null,
   jobs: { set: "ranked", rows: [], weights: {}, selected: null, filter: "", minScore: 0, confirmedOnly: false, hideActed: false },
-  setup: { step: 0, answers: {}, questions: [], suggestions: null },
+  setup: { loaded: false, page: 0, answers: {}, resume: null, suggest: null },
   taskSince: 0, taskTimer: null,
 };
 
@@ -627,151 +627,323 @@ async function viewStats() {
       h("p", { class: "small muted" }, "To have it suggest better weights, run: job-hunter eval-rank --tune")));
 }
 
-// ---------------------------------------------------------------- Setup: one question per page
+// ---------------------------------------------------------------- Setup: resume first, four short pages
 const SETUP_LABELS = {
-  resume: "Your resume", field: "Kind of work", titles: "Job titles", adjacent_titles: "Other titles", pivot_titles: "Career change titles",
+  resume: "Your resume", field: "Kind of work", titles: "Job titles", adjacent_titles: "Also consider", pivot_titles: "Career change",
   levels: "Levels", years_experience: "Years of experience", skills: "Skills", locations: "Cities", remote: "Remote",
-  remote_like_top_city: "Remote ranks with your first city", pay_floor: "Lowest pay", pay_target: "Target pay",
-  avoid_companies: "Companies to skip", avoid_keywords: "Words that rule a job out", target_companies: "Companies you'd like",
-  discover_companies: "Find more companies",
+  remote_only: "Remote only", remote_like_top_city: "Remote ranks with your first city", pay_floor: "Lowest pay",
+  pay_target: "Target pay", avoid_companies: "Companies to skip", avoid_keywords: "Words that rule a job out",
+  target_companies: "Companies you'd like", discover_companies: "Find more companies",
 };
+const LEVEL_TEXT = { intern: "Intern", entry: "Entry level", mid: "Mid level", senior: "Senior", manager: "Manager",
+  director: "Director", vp: "Vice president", executive: "Executive" };
+const SETUP_PAGES = ["Your resume", "The jobs you want", "Where you'll work", "Pay, skills and companies", "Check and finish"];
+const newSetupState = () => ({ loaded: false, page: 0, answers: {}, resume: null, suggest: null });
+let datalistSeq = 0;
 
 async function viewSetup() {
   const st = state.setup;
-  if (!st.questions.length) {
+  if (!st.loaded) {
     const info = await api("/api/setup");
-    st.questions = info.questions;
-    st.hasProfile = info.has_profile;
-    if (info.has_profile && !Object.keys(st.answers).length) st.answers = { ...(info.current || {}) };
+    Object.assign(st, { loaded: true, hasProfile: info.has_profile, cities: info.cities || [], fields: info.fields || [],
+      resume: info.resume || null, answers: info.has_profile ? { ...(info.current || {}) } : {}, page: 0 });
+    if (!info.has_profile && st.resume && !st.resume.error) applyResume(st, st.resume);
   }
-  renderSetup();
+  renderSetupPage();
 }
 
-function answerText(q, v) {
+// What the resume says fills in anything not answered yet (never overwrites your own answers).
+function applyResume(st, r) {
+  const a = st.answers;
+  a.resume = r.path;
+  const empty = (k) => a[k] === undefined || a[k] === null || a[k] === "" || (Array.isArray(a[k]) && !a[k].length);
+  if (empty("titles") && (r.search_titles || []).length) a.titles = [...r.search_titles];
+  if (empty("levels") && r.level) a.levels = [r.level];
+  if (empty("years_experience") && r.years_experience) a.years_experience = r.years_experience;
+  if (empty("locations") && r.city) a.locations = [r.city];
+  if (empty("remote") ) a.remote = true;
+  if (empty("discover_companies")) a.discover_companies = true;
+}
+
+function resumeSkills(st) { return (st.resume && st.resume.skills) || []; }
+
+async function refreshSuggestions(st) {
+  const titles = [...(st.answers.titles || []), ...(st.answers.adjacent_titles || [])];
+  if (!titles.length) { st.suggest = null; return; }
+  try { st.suggest = await api("/api/setup/suggest", { method: "POST", body: { titles } }); } catch { st.suggest = null; }
+}
+
+// A list you build one item at a time: type and press Enter (or pick from the dropdown), or tap a
+// suggestion. Items show as removable chips. Commas are fine inside an item ("Washington, DC").
+function chipField({ id, label, hint, values, onChange, options = [], suggestions = [], suggestLabel, lookup, placeholder }) {
+  const listId = `dl-${++datalistSeq}`;
+  const datalist = h("datalist", { id: listId });
+  const fillOptions = (opts) => datalist.replaceChildren(...[...new Set(opts)].slice(0, 200).map((o) => h("option", { value: o })));
+  fillOptions(options);
+  const input = h("input", { type: "text", id, list: listId, class: "wide", placeholder: placeholder || "Type and press Enter",
+    autocomplete: "off" });
+  const chips = h("div", { class: "chips", "aria-live": "polite" });
+  const sugg = h("div", { class: "chips" });
+  const has = (v) => values.some((x) => x.toLowerCase() === v.toLowerCase());
+  const add = (v) => {
+    v = String(v || "").trim();
+    if (!v || has(v)) return;
+    values.push(v); onChange(values); draw();
+  };
+  const remove = (v) => {
+    const i = values.findIndex((x) => x.toLowerCase() === v.toLowerCase());
+    if (i >= 0) values.splice(i, 1);
+    onChange(values); draw();
+  };
+  const draw = () => {
+    chips.replaceChildren(...values.map((v) => h("span", { class: "chip on" }, v,
+      h("button", { type: "button", class: "chip-x", "aria-label": `Remove ${v}`, onclick: () => remove(v) }, "×"))));
+    sugg.replaceChildren(...suggestions.filter((s) => !has(s)).slice(0, 14).map((s) =>
+      h("button", { type: "button", class: "chip", onclick: () => add(s) }, `+ ${s}`)));
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); add(input.value); input.value = ""; }
+  });
+  input.addEventListener("input", (e) => {
+    // picking from the dropdown (no typed keystroke) adds it straight away
+    if (!e.inputType || e.inputType === "insertReplacementText") { add(input.value); input.value = ""; return; }
+    if (lookup) {
+      clearTimeout(input._t);
+      input._t = setTimeout(async () => {
+        if (input.value.trim().length < 2) return;
+        try { fillOptions([...(await lookup(input.value.trim())), ...options]); } catch { /* typing still works */ }
+      }, 200);
+    }
+  });
+  input.addEventListener("blur", () => { if (input.value.trim()) { add(input.value); input.value = ""; } });
+  draw();
+  return h("div", { class: "field" },
+    h("label", { for: id, class: "field-label" }, label),
+    hint ? h("span", { class: "hint" }, hint) : null,
+    chips, input, datalist,
+    suggestions.length ? h("p", { class: "small muted" }, suggestLabel || "Suggestions. Tap to add:") : null, sugg);
+}
+
+function radioGroup(name, label, choices, current, onChange) {
+  return h("fieldset", { class: "field" }, h("legend", { class: "field-label" }, label),
+    h("div", { class: "stack" }, choices.map(([value, text]) => h("label", { class: "check" },
+      h("input", { type: "radio", name, value, checked: current === value, onchange: () => onChange(value) }), text))));
+}
+
+function setupShell(st, title, body, { next = "Continue", onNext, canBack = true } = {}) {
+  const errorP = h("p", { class: "error-text", role: "alert" });
+  const go = async (delta) => {
+    try {
+      if (delta > 0 && onNext && (await onNext(errorP)) === false) return;
+      st.page = Math.max(0, Math.min(SETUP_PAGES.length - 1, st.page + delta));
+      renderSetupPage();
+      window.scrollTo(0, 0);
+      main.focus();
+    } catch (e) { errorP.textContent = e.message; }
+  };
+  setMain(h("form", { class: "wizard", onsubmit: (e) => { e.preventDefault(); go(1); } },
+    st.hasProfile && st.page === 0 ? h("div", { class: "notice" },
+      h("p", {}, "You already have a search set up, so your current answers are filled in. Change what you like."),
+      h("p", {}, "Finishing replaces your search settings (the old ones are kept as profile.yaml.bak).")) : null,
+    h("p", { class: "progress" }, `Step ${st.page + 1} of ${SETUP_PAGES.length}`),
+    h("h1", {}, title), body, errorP,
+    h("div", { class: "row nav" },
+      canBack && st.page > 0 ? h("button", { type: "button", class: "btn quiet", onclick: () => go(-1) }, "Back") : null,
+      next ? h("button", { type: "submit", class: "btn primary" }, next) : null)));
+}
+
+function renderSetupPage() {
+  const st = state.setup;
+  [setupResumePage, setupJobsPage, setupWherePage, setupFiltersPage, setupReviewPage][st.page](st);
+}
+
+function setupResumePage(st) {
+  const r = st.resume;
+  const status = h("div", {});
+  const showResume = () => {
+    const res = st.resume;
+    if (!res) { status.replaceChildren(); return; }
+    if (res.error) { status.replaceChildren(h("p", { class: "notice" }, `${res.file}: ${res.error}`)); return; }
+    const found = [
+      res.titles && res.titles.length ? `${res.titles.length} job${res.titles.length > 1 ? "s" : ""} (latest: ${res.titles[0]}${res.current_employers && res.current_employers[0] ? ` at ${res.current_employers[0]}` : ""})` : null,
+      res.city ? `your city (${res.city})` : null,
+      res.skills && res.skills.length ? `${res.skills.length} skills` : null,
+      res.years_experience ? `about ${res.years_experience} years of experience` : null,
+    ].filter(Boolean);
+    status.replaceChildren(h("div", { class: "notice ok" },
+      h("p", {}, h("strong", {}, `Using ${res.original_name || res.file}.`), " It stays in your folder."),
+      found.length ? h("p", {}, `Read from it: ${found.join(", ")}. You'll see and can change all of it on the next pages.`)
+        : h("p", {}, "Couldn't pick out your jobs from it. You can type them on the next page.")));
+  };
+  const file = h("input", { type: "file", id: "q-resume", accept: ".pdf,.docx,.txt,.md" });
+  file.addEventListener("change", async () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    status.replaceChildren(h("p", { class: "muted" }, "Reading your resume..."));
+    try {
+      st.resume = await api("/api/setup/resume", { method: "POST", raw: true, body: f,
+        headers: { "X-Filename": encodeURIComponent(f.name), "Content-Type": "application/octet-stream" } });
+      if (!st.resume.error) applyResume(st, st.resume);
+      await refreshSuggestions(st);
+    } catch (e) { status.replaceChildren(h("p", { class: "error-text" }, e.message)); return; }
+    showResume();
+  });
+  showResume();
+  setupShell(st, "Start with your resume", [
+    h("p", {}, "job-hunter reads your job titles, employers, city and skills from it, so you only fill in what's missing."),
+    h("label", { for: "q-resume", class: "field-label" }, r ? "Use a different resume" : "Your resume (PDF, Word or text)"),
+    file, status,
+  ], { next: r ? "Continue" : "Continue without a resume" });
+}
+
+function setupJobsPage(st) {
+  const a = st.answers;
+  const set = (k) => (v) => { a[k] = v; };
+  const lookup = async (q) => (await api(`/api/setup/titles?q=${encodeURIComponent(q)}`)).titles;
+  const fromResume = st.resume && !st.resume.error ? [...(st.resume.search_titles || []), ...(st.resume.titles || [])] : [];
+  const related = st.suggest ? st.suggest.related_titles.map((x) => x.title) : [];
+  a.levels = a.levels || [];
+  const levels = h("div", { class: "chips", role: "group", "aria-labelledby": "lv-h" },
+    Object.entries(LEVEL_TEXT).map(([k, text]) => h("button", { type: "button", class: "chip", "aria-pressed": String(a.levels.includes(k)),
+      onclick: (e) => {
+        const on = a.levels.includes(k);
+        a.levels = on ? a.levels.filter((x) => x !== k) : [...a.levels, k];
+        e.target.setAttribute("aria-pressed", String(!on));
+      } }, text)));
+  const field = h("input", { type: "text", id: "q-field", class: "wide", list: "dl-fields", value: a.field || "",
+    placeholder: "Pick one or type your own", oninput: (e) => { a.field = e.target.value.trim(); } });
+  setupShell(st, "The jobs you want", [
+    h("div", { class: "field" }, h("label", { for: "q-field", class: "field-label" }, "Kind of work"),
+      h("span", { class: "hint" }, "Your field or industry, like commercial real estate lending or hospital nursing."),
+      field, h("datalist", { id: "dl-fields" }, (st.fields || []).map((f) => h("option", { value: f })))),
+    chipField({ id: "q-titles", label: "Job titles to search for", values: a.titles || (a.titles = []), onChange: set("titles"),
+      hint: "These are what get searched. Use the titles employers post. Start typing for a list.",
+      lookup, options: fromResume, suggestions: fromResume, suggestLabel: "From your resume. Tap to add:" }),
+    chipField({ id: "q-adjacent", label: "Also consider (optional)", values: a.adjacent_titles || (a.adjacent_titles = []),
+      onChange: set("adjacent_titles"), hint: "Same skills, different seat.", lookup,
+      suggestions: related, suggestLabel: "Titles in related occupations. Tap to add:" }),
+    chipField({ id: "q-pivot", label: "Career change (optional)", values: a.pivot_titles || (a.pivot_titles = []),
+      onChange: set("pivot_titles"), hint: "Jobs in a new direction you'd consider.", lookup }),
+    h("div", { class: "field" }, h("span", { class: "field-label", id: "lv-h" }, "Levels (pick any)"),
+      st.resume && st.resume.level ? h("span", { class: "hint" }, `Your latest title reads as ${LEVEL_TEXT[st.resume.level].toLowerCase()}.`) : null,
+      levels),
+    h("div", { class: "field" }, h("label", { for: "q-years", class: "field-label" }, "Years of experience"),
+      h("input", { type: "number", id: "q-years", min: "0", max: "60", value: a.years_experience ?? "", style: "width: 8ch",
+        oninput: (e) => { a.years_experience = e.target.value ? Number(e.target.value) : null; } })),
+  ], { onNext: async (err) => {
+    if (!(a.titles || []).length) { err.textContent = "Add at least one job title. That's what gets searched."; return false; }
+    await refreshSuggestions(st);
+    return true;
+  } });
+}
+
+function setupWherePage(st) {
+  const a = st.answers;
+  a.locations = a.locations || [];
+  const mode = a.remote_only ? "only" : a.remote === false ? "no" : "also";
+  const city = st.resume && !st.resume.error ? st.resume.city : "";
+  const cityBox = h("div", {});
+  const drawCities = () => {
+    if (a.remote_only) { cityBox.replaceChildren(); return; }
+    cityBox.replaceChildren(
+      chipField({ id: "q-cities", label: "Cities, best first", values: a.locations, onChange: (v) => { a.locations = v; },
+        hint: "Start typing and pick from the list, or type any city and press Enter.", options: st.cities || [],
+        placeholder: "Start typing a city" }),
+      city && !a.locations.some((c) => c.toLowerCase() === city.toLowerCase())
+        ? h("button", { type: "button", class: "btn", onclick: () => { a.locations.unshift(city); drawCities(); } }, `Use my city: ${city}`) : null,
+      a.remote ? h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.remote_like_top_city !== false,
+        onchange: (e) => { a.remote_like_top_city = e.target.checked; } }), "Remote jobs rank as high as my first city") : null);
+  };
+  drawCities();
+  setupShell(st, "Where you'll work", [
+    radioGroup("q-remote", "Remote work", [["no", "Only jobs in my cities"], ["also", "My cities and remote jobs"],
+      ["only", "Remote jobs only"]], mode, (v) => {
+      a.remote = v !== "no"; a.remote_only = v === "only"; drawCities();
+    }),
+    cityBox,
+  ], { onNext: async (err) => {
+    if (!a.remote_only && !a.locations.length && !a.remote) { err.textContent = "Add a city, or choose remote jobs."; return false; }
+    return true;
+  } });
+}
+
+function setupFiltersPage(st) {
+  const a = st.answers;
+  const fromResume = resumeSkills(st);
+  a.skills = a.skills || [];
+  a.avoid_companies = a.avoid_companies || [];
+  const extraSkills = a.skills.filter((s) => !fromResume.some((r) => r.toLowerCase() === s.toLowerCase()));
+  a.resume_skills = a.resume_skills || [...fromResume];
+  const syncSkills = () => { a.skills = [...new Set([...a.resume_skills, ...extraSkills])]; };
+  syncSkills();
+  const resumeBox = h("div", { class: "chips" });
+  const drawResumeSkills = () => resumeBox.replaceChildren(...a.resume_skills.map((s) => h("span", { class: "chip on" }, s,
+    h("button", { type: "button", class: "chip-x", "aria-label": `Remove ${s}`, onclick: () => {
+      a.resume_skills = a.resume_skills.filter((x) => x !== s); syncSkills(); drawResumeSkills();
+    } }, "×"))));
+  drawResumeSkills();
+  const employers = st.resume && !st.resume.error ? st.resume : null;
+  const current = employers ? employers.current_employers || [] : [];
+  const past = employers ? (employers.employers || []).filter((e) => !current.includes(e)) : [];
+  const avoidBox = h("div", {});
+  const drawAvoid = () => avoidBox.replaceChildren(
+    chipField({ id: "q-avoid", label: "Companies to skip", values: a.avoid_companies, onChange: (v) => { a.avoid_companies = v; },
+      hint: "Their jobs never show up. Type a name and press Enter." }),
+    h("div", { class: "row" },
+      current.length ? h("button", { type: "button", class: "btn", onclick: () => {
+        current.forEach((c) => { if (!a.avoid_companies.includes(c)) a.avoid_companies.push(c); }); drawAvoid();
+      } }, `Skip my current employer (${current.join(", ")})`) : null,
+      past.length ? h("button", { type: "button", class: "btn", onclick: () => {
+        past.forEach((c) => { if (!a.avoid_companies.includes(c)) a.avoid_companies.push(c); }); drawAvoid();
+      } }, "Skip all my past employers") : null));
+  drawAvoid();
+  const money = (id, k, label, hint) => h("div", { class: "field" }, h("label", { for: id, class: "field-label" }, label),
+    h("span", { class: "hint" }, hint),
+    h("input", { type: "text", id, value: a[k] ? Math.round(a[k] / 1000) + "k" : "", style: "width: 12ch", placeholder: "e.g. 120k",
+      oninput: (e) => { a[k] = e.target.value.trim(); } }));
+  setupShell(st, "Pay, skills and companies", [
+    h("div", { class: "row" }, money("q-floor", "pay_floor", "Lowest pay", "Per year. Leave blank to skip."),
+      money("q-target", "pay_target", "Target pay", "Per year. Leave blank to skip.")),
+    h("div", { class: "field" }, h("span", { class: "field-label" }, "Skills"),
+      fromResume.length ? [h("span", { class: "hint" }, "Already looking for these, from your resume. Tap × to drop one."), resumeBox] : null),
+    chipField({ id: "q-skills", label: fromResume.length ? "Add other skills" : "Your main skills", values: extraSkills,
+      onChange: () => syncSkills(), hint: "Worded the way job postings say them.",
+      suggestions: st.suggest ? st.suggest.skills : [], suggestLabel: "Often asked for in these jobs. Tap to add:" }),
+    avoidBox,
+    chipField({ id: "q-avoid-words", label: "Words that rule a job out (optional)", values: a.avoid_keywords || (a.avoid_keywords = []),
+      onChange: (v) => { a.avoid_keywords = v; }, hint: "Like a kind of role you won't do: commission, night shift." }),
+    chipField({ id: "q-targets", label: "Companies you'd like to work for (optional)", values: a.target_companies || (a.target_companies = []),
+      onChange: (v) => { a.target_companies = v; }, hint: "Their career sites get searched every run." }),
+    h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.discover_companies !== false,
+      onchange: (e) => { a.discover_companies = e.target.checked; } }), "After the first search, find more companies hiring for these jobs"),
+  ]);
+}
+
+function answerText(k, v) {
   if (v === undefined || v === null || v === "" || (Array.isArray(v) && !v.length)) return "Not answered";
-  if (q.kind === "bool") return v ? "Yes" : "No";
-  if (Array.isArray(v)) return v.join(q.kind === "cities" ? "; " : ", ");
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (k === "levels") return v.map((x) => LEVEL_TEXT[x] || x).join(", ");
+  if (Array.isArray(v)) return v.join(k === "locations" ? "; " : ", ");
+  if ((k === "pay_floor" || k === "pay_target") && typeof v === "number") return `$${Math.round(v / 1000)}k`;
   return String(v);
 }
 
-function renderSetup() {
-  const st = state.setup;
-  const qs = st.questions;
-  if (st.step >= qs.length) return renderSetupReview();
-  const q = qs[st.step];
-  const val = st.answers[q.key];
-  const id = `q-${q.key}`;
-  const [promptMain, ...promptRest] = q.prompt.split("\n");
-  let input;
-  const extras = [];
-  if (q.kind === "path") {
-    input = h("input", { type: "file", id, accept: ".pdf,.docx,.txt,.md" });
-    if (val) extras.push(h("p", { class: "notice ok" }, `Uploaded. Saved as ${val} in your folder.`));
-  } else if (q.kind === "bool") {
-    const cur = val === undefined ? (q.default || "").startsWith("y") : val;
-    input = h("div", { class: "stack", role: "radiogroup", "aria-labelledby": `${id}-h` },
-      h("label", { class: "check" }, h("input", { type: "radio", name: id, value: "yes", checked: cur === true }), "Yes"),
-      h("label", { class: "check" }, h("input", { type: "radio", name: id, value: "no", checked: cur === false }), "No"));
-  } else if (["list", "levels", "cities"].includes(q.kind)) {
-    input = h("textarea", { id, rows: "4" }, Array.isArray(val) ? val.join(q.kind === "cities" ? "\n" : ", ") : val || "");
-  } else {
-    input = h("input", { type: "text", id, class: "wide", value: val ?? "" });
-  }
-  const hint = {
-    titles: "Separate them with commas. These are what get searched, so use the titles employers post.",
-    adjacent_titles: "Same skills, different seat. Optional.",
-    pivot_titles: "Optional. Jobs in a new direction you'd consider.",
-    resume: "A PDF, Word or text file. Optional, but ranking works much better with it. It stays in your folder.",
-    field: "In your own words, like hospital nursing, B2B software sales, or commercial real estate lending.",
-    years_experience: "In this kind of work. A number is fine.",
-    remote: "Remote jobs get searched alongside your cities.",
-    remote_like_top_city: "Yes means a remote job scores as well as one in your first city.",
-    discover_companies: "After your first search, job-hunter can find employers hiring for these roles and add their career sites.",
-    levels: "Any of: intern, entry, mid, senior, manager, director, vp, executive.",
-    skills: "Worded the way job postings say them. Separate with commas.",
-    locations: "One per line, best first, like Chicago, IL.",
-    pay_floor: "Per year, like 85k. Leave blank to skip.", pay_target: "Per year, like 110k. Leave blank to skip.",
-    avoid_companies: "Like your current employer. Separate with commas.",
-    avoid_keywords: "Like a kind of role you won't do. Separate with commas.",
-    target_companies: "Their career sites get searched every run. Separate with commas.",
-  }[q.key] || promptRest.join(" ").trim();
-
-  if ((q.key === "adjacent_titles" || q.key === "skills") && st.suggestions) {
-    const opts = q.key === "skills" ? st.suggestions.skills : st.suggestions.related_titles.map((r) => r.title);
-    if (opts.length) {
-      extras.push(h("p", { class: "small muted" }, q.key === "skills"
-        ? "Skills postings in these occupations often ask for. Tap to add:" : "Titles in related occupations. Tap to add:"));
-      extras.push(h("div", { class: "chips" }, opts.map((o) => h("button", { type: "button", class: "chip",
-        "aria-pressed": String(splitList(input.value).includes(o)),
-        onclick: (e) => {
-          const cur = splitList(input.value);
-          const on = cur.includes(o);
-          input.value = (on ? cur.filter((x) => x !== o) : [...cur, o]).join(", ");
-          e.target.setAttribute("aria-pressed", String(!on));
-        } }, o))));
-      extras.push(h("p", { class: "small muted" }, st.suggestions.attribution));
-    }
-  }
-
-  const errorP = h("p", { class: "error-text", role: "alert" });
-  const read = async () => {
-    if (q.kind === "path") {
-      const file = input.files && input.files[0];
-      if (!file) return st.answers[q.key] || "";
-      const r = await api("/api/setup/resume", { method: "POST", raw: true, body: file,
-        headers: { "X-Filename": encodeURIComponent(file.name), "Content-Type": "application/octet-stream" } });
-      return r.path;
-    }
-    if (q.kind === "bool") {
-      const picked = main.querySelector(`input[name="${id}"]:checked`);
-      return picked ? picked.value === "yes" : undefined;
-    }
-    if (q.kind === "cities") return input.value.split("\n").map((s) => s.trim()).filter(Boolean);
-    if (q.kind === "list" || q.kind === "levels") return splitList(input.value);
-    return input.value.trim();
-  };
-  const next = async (e) => {
-    e.preventDefault();
-    try {
-      const v = await read();
-      if (q.key === "titles" && !v.length) { errorP.textContent = "Add at least one job title. That's what gets searched."; return; }
-      st.answers[q.key] = v;
-      if (q.key === "titles" || q.key === "adjacent_titles") {
-        try { st.suggestions = await api("/api/setup/suggest", { method: "POST", body: { titles: [...(st.answers.titles || []), ...(st.answers.adjacent_titles || [])] } }); }
-        catch { st.suggestions = null; }
-      }
-      st.step = st.returnToReview ? qs.length : st.step + 1;
-      st.returnToReview = false;
-      renderSetup();
-      main.focus();
-    } catch (err) { errorP.textContent = err.message; }
-  };
-  setMain(h("form", { class: "wizard", onsubmit: next },
-    st.hasProfile && st.step === 0 ? h("div", { class: "notice" },
-      h("p", {}, "You already have a search set up, so your current answers are filled in. Change what you like."),
-      h("p", {}, "Finishing replaces your search settings (the old ones are kept as profile.yaml.bak). Details setup doesn't ask about, like your name, contact and past titles, are kept; the old candidate.yaml is saved as candidate.yaml.bak.")) : null,
-    h("p", { class: "progress" }, `Question ${st.step + 1} of ${qs.length}`),
-    h("h1", { id: `${id}-h` }, h("label", { for: id }, SETUP_LABELS[q.key] || promptMain)),
-    h("span", { class: "hint" }, hint || promptMain),
-    input, extras, errorP,
-    h("div", { class: "row nav" },
-      st.step > 0 ? h("button", { type: "button", class: "btn quiet", onclick: async () => {
-        if (q.kind !== "path") { try { st.answers[q.key] = await read(); } catch { /* keep the old answer */ } }
-        st.step -= 1; renderSetup();
-      } }, "Back") : null,
-      h("button", { type: "submit", class: "btn primary" }, st.returnToReview ? "Save and go back to the summary" : "Continue"),
-      q.key !== "titles" ? h("button", { type: "button", class: "btn quiet", onclick: () => { st.step = st.returnToReview ? qs.length : st.step + 1; st.returnToReview = false; renderSetup(); } }, "Skip") : null)));
-  const first = main.querySelector("input, textarea");
-  if (first && q.kind !== "bool") first.focus();
-}
-
-function renderSetupReview() {
-  const st = state.setup;
+function setupReviewPage(st) {
+  const a = st.answers;
+  const rows = [
+    [0, "resume", st.resume ? (st.resume.original_name || st.resume.file) : "None"],
+    [1, "field"], [1, "titles"], [1, "adjacent_titles"], [1, "pivot_titles"], [1, "levels"], [1, "years_experience"],
+    [2, "remote", a.remote_only ? "Remote only" : a.remote ? "My cities and remote" : "Only my cities"], [2, "locations"],
+    [3, "pay_floor"], [3, "pay_target"], [3, "skills"], [3, "avoid_companies"], [3, "avoid_keywords"], [3, "target_companies"],
+  ];
   const errorP = h("p", { class: "error-text", role: "alert" });
   const submit = async (force) => {
+    const answers = { ...a };
+    delete answers.resume_skills;
+    if (a.remote_only) answers.locations = [];
     try {
-      const r = await api("/api/setup", { method: "POST", body: { answers: st.answers, force } });
-      state.setup = { step: 0, answers: {}, questions: [], suggestions: null };
+      const r = await api("/api/setup", { method: "POST", body: { answers, force } });
+      state.setup = newSetupState();
       await refreshStatus();
       setMain(h("div", { class: "wizard stack" }, h("h1", {}, "Your search is set up"),
         r.messages.length ? h("ul", { class: "list-plain" }, r.messages.map((m) => h("li", {}, m.trim()))) : null,
@@ -784,7 +956,6 @@ function renderSetupReview() {
           ];
         })(),
         h("p", {}, "Next, run your first search. It takes 10 to 30 minutes."),
-        state.status && state.status.folder ? h("p", { class: "small muted" }, `Your files are in ${state.status.folder}`) : null,
         h("div", { class: "row" }, h("a", { class: "btn primary", href: "#search" }, "Go to search"))));
     } catch (e) {
       if (e.status === 409 && !force) {
@@ -793,14 +964,14 @@ function renderSetupReview() {
       } else errorP.textContent = e.message;
     }
   };
-  setMain(h("div", { class: "wizard" },
-    h("h1", {}, "Check your answers"),
-    h("dl", { class: "answers" }, st.questions.map((q, i) => h("div", {},
-      h("dt", {}, SETUP_LABELS[q.key] || q.key), h("dd", {}, answerText(q, st.answers[q.key])),
-      h("dd", {}, h("button", { class: "btn quiet", type: "button", onclick: () => { st.step = i; st.returnToReview = true; renderSetup(); } },
-        h("span", {}, "Change"), h("span", { class: "visually-hidden" }, ` ${SETUP_LABELS[q.key] || q.key}`)))))),
+  setupShell(st, "Check and finish", [
+    h("dl", { class: "answers" }, rows.map(([page, k, shown]) => h("div", {},
+      h("dt", {}, SETUP_LABELS[k] || k), h("dd", {}, shown ?? answerText(k, a[k])),
+      h("dd", {}, h("button", { class: "btn quiet", type: "button", onclick: () => { st.page = page; renderSetupPage(); } },
+        h("span", {}, "Change"), h("span", { class: "visually-hidden" }, ` ${SETUP_LABELS[k] || k}`)))))),
     errorP,
-    h("div", { class: "row nav" }, h("button", { class: "btn primary", type: "button", onclick: () => submit(st.hasProfile) }, "Create my search"))));
+    h("div", { class: "row nav" }, h("button", { class: "btn primary", type: "button", onclick: () => submit(st.hasProfile) }, "Create my search")),
+  ], { next: null });
 }
 
 // ---------------------------------------------------------------- Settings

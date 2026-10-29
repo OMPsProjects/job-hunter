@@ -69,6 +69,7 @@ QUESTIONS = [
     ("skills", "Your main skills, worded as a job posting would (comma-separated)", "list", ""),
     ("locations", "Cities you'd work in, best first, separated by ';' (e.g. 'Chicago, IL; New York, NY')", "cities", ""),
     ("remote", "Open to remote jobs? (y/n)", "bool", "y"),
+    ("remote_only", "Only remote jobs, none in an office? (y/n)", "bool", "n"),
     ("remote_like_top_city", "Should remote jobs rank as high as your first city? (y/n)", "bool", "y"),
     ("pay_floor", "Lowest base pay you'd consider, per year (e.g. 85k, or Enter to skip)", "money", ""),
     ("pay_target", "Pay you're aiming for, per year (e.g. 110k, or Enter to skip)", "money", ""),
@@ -242,6 +243,50 @@ CITY_ALIASES = {"washington dc": "washington", "washington d.c.": "washington", 
                 "twin cities": "minneapolis", "st louis": "st. louis", "saint louis": "st. louis", "slc": "salt lake city"}
 
 
+_LEVEL_ONLY = re.compile(r"^(?:senior |sr\.? |executive |assistant |associate )?(?:vice president|vp|svp|evp|avp|"
+                         r"managing director|director|partner|principal)$", re.I)
+_LEVEL_WORDS = re.compile(r"\b(?:senior|sr\.?|junior|jr\.?|lead|principal|i{1,3}|iv)\b", re.I)
+
+
+def search_title(title: str) -> str:
+    """A resume title as a job-board search: 'Vice President, Senior Commercial Loan
+    Underwriter' -> 'Commercial Loan Underwriter'; 'Senior Underwriter, Multifamily' ->
+    'Multifamily Underwriter'. Level words go (level is its own setting, and they narrow a search)."""
+    from .resume_parse import _TITLE_WORDS
+    title = re.split(r"\s+/\s+|\s+&\s+(?=[A-Z])", str(title or ""))[0]  # 'Director of Ops / Chief of Staff'
+    parts = [p.strip() for p in title.split(",") if p.strip()]
+    parts = [p for p in parts if not _LEVEL_ONLY.match(p)] or parts
+    core = next((p for p in parts if _TITLE_WORDS.search(_LEVEL_WORDS.sub("", p))), "")
+    if not core:  # 'VP, Credit Risk': nothing but the level says what the job is; keep it whole
+        return re.sub(r"\s+", " ", title).strip()
+    extra = [p for p in parts if p != core and len(p.split()) <= 3 and not _TITLE_WORDS.search(p)]
+    out = " ".join(extra[:1] + [core])
+    out = re.sub(r"\s+", " ", _LEVEL_WORDS.sub("", out)).strip(" -/&")
+    return out or str(title or "").strip()
+
+
+def search_titles(titles, limit=3) -> list[str]:
+    return list(dict.fromkeys(t for t in (search_title(x) for x in titles) if t))[:limit]
+
+
+FIELDS = sorted([
+    "Accounting", "Administrative and office support", "Architecture", "Banking", "Commercial real estate",
+    "Commercial real estate lending", "Construction", "Consulting", "Customer service", "Cybersecurity",
+    "Data and analytics", "Design", "Education", "Energy", "Engineering", "Finance", "Government",
+    "Healthcare", "Hospitality", "Human resources", "Insurance", "Investment management", "Law",
+    "Logistics and supply chain", "Manufacturing", "Marketing", "Media", "Mortgage lending", "Nonprofit",
+    "Nursing", "Operations", "Pharmaceuticals", "Product management", "Project management", "Real estate",
+    "Retail", "Sales", "Skilled trades", "Social work", "Software engineering", "Telecommunications",
+    "Transportation"])
+
+
+def us_cities() -> list[str]:
+    """The 1,000 largest US cities as 'City, ST', biggest first (for the city picker)."""
+    from importlib.resources import files
+    text = (files("jobhunter") / "data" / "us_cities.txt").read_text(encoding="utf-8")
+    return [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")]
+
+
 def region_for(city: str):
     name = city.split(",")[0].strip().lower()
     words = name.split()
@@ -279,6 +324,8 @@ def build_profile(a: dict) -> dict:  # noqa: C901
             a["remote"] = True  # remote is its own setting, not a city
         else:
             cities.append(city)
+    if a.get("remote_only"):
+        a["remote"], cities = True, []  # remote only: no cities to search or rank
     a["locations"] = cities
     for city in cities:
         key, pat = region_for(city)
@@ -314,7 +361,9 @@ def build_profile(a: dict) -> dict:  # noqa: C901
     prof: dict = {
         "output_dir": "results",
         "search": {"locations": a.get("locations") or [], "include_remote": bool(a.get("remote")),
-                   "results_per_search": 25, "hours_old": 168, "sites": ["indeed"], "pause_seconds": 2},
+                   **({"remote_only": True} if a.get("remote_only") else {}),
+                   # two weeks: a first search over one week of postings is thin in most fields
+                   "results_per_search": 25, "hours_old": 336, "sites": ["indeed"], "pause_seconds": 2},
         "regions": regions,
         "region_order": order,
         "keep_unspecified_locations": True,
@@ -357,6 +406,12 @@ def build_candidate(a: dict, resume_text: str, resume_path):
         "name": "", "contact": {}, "base_resume": "", "years_experience": None, "headline": "",
         "target_titles": [], "past_titles": [], "target_levels": [], "skills": {"core": [], "other": []},
         "industries": [], "summary": "", "facts_files": []}
+    if resume_text:  # past titles and city from the resume, for ranking and the skill's tailoring
+        from .resume_parse import parse_resume
+        parsed = parse_resume(resume_text)
+        cand["past_titles"] = parsed["titles"] or cand.get("past_titles", [])
+        if parsed["city"]:
+            cand.setdefault("contact", {})["city"] = parsed["city"]
     if a.get("years_experience"):
         cand["years_experience"] = a["years_experience"]
     cand["target_titles"] = list(dict.fromkeys(a["titles"] + (a.get("adjacent_titles") or [])))
@@ -405,7 +460,7 @@ def current_answers(repo: Path) -> dict:
         "titles": p.tracks.get("core", []), "adjacent_titles": p.tracks.get("adjacent", []),
         "pivot_titles": p.tracks.get("pivot", []), "levels": cand.get("target_levels") or [],
         "years_experience": cand.get("years_experience"), "skills": skill_list or list(p.skills),
-        "locations": p.locations, "remote": p.include_remote,
+        "locations": p.locations, "remote": p.include_remote, "remote_only": p.remote_only,
         "remote_like_top_city": bool(keys and p.remote_rank_as == keys[0]),
         "pay_floor": p.pay_floor, "pay_target": p.pay_target,
         "avoid_companies": p.exclude_companies, "avoid_keywords": p.exclude_keywords,

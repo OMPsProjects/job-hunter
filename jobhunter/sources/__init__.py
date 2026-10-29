@@ -228,6 +228,8 @@ def gather(p, only=None):
     drop = {OTHER} if p.keep_unspecified else {OTHER, UNSPECIFIED_KEY}
     if not p.include_remote:
         drop.add(REMOTE)
+    if p.remote_only:  # only remote jobs: anything tied to a place goes, wherever it is
+        drop |= {OTHER, UNSPECIFIED_KEY} | {k for k, _ in p.regions}
     # "Remote, Poland" / "Remote EMEA" aren't remote jobs you can take: same rule as the remote boards
     remote_elsewhere = (out["_region"] == REMOTE) & ~out["location"].map(lambda loc: remote_location_ok(p, loc))
     out.loc[remote_elsewhere, "_region"] = OTHER

@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.0 (2026-10-29): setup starts from your resume
+
+- **Setup reads your resume:** job titles, employers, city, skills, level and years. Four short
+  pages instead of 17 questions, each prefilled for you to check.
+- **Resume titles become job-board searches:** "Vice President, Senior Commercial Loan
+  Underwriter" is searched as "Commercial Loan Underwriter".
+- **Lists instead of typing:** titles, cities and companies are added one at a time with a
+  type-ahead list (1,000 US cities; job titles from O*NET); "Use my city" from your resume;
+  levels pick several; "Skip my current employer" and "Skip all my past employers".
+- **Remote only** is now a choice.
+- **Skills from your resume** are shown as already included; you add the rest.
+- Going back in setup no longer looks like the resume was lost.
+- New searches cover two weeks of postings instead of one.
+- Related-title and skill suggestions only come from a confident match, so a commercial real
+  estate underwriter isn't offered insurance-agent titles.
+
 ## 1.3.0 (2026-10-29): Dreamwork listings (opt-in)
 
 - **New source: Dreamwork** (dreamworkhq.com), about 2 million postings gathered from employers'

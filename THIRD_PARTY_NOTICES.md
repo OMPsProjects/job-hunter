@@ -50,3 +50,8 @@ changes made to it are listed in `jobhunter/vendor/README.md`.
 - Occupation data: O*NET 31.0 Database subset, CC BY 4.0 (see `jobhunter/data/README.md`).
 - Careers-site directory: downloaded at run time from the ats-scrapers project (MIT), not bundled.
 - Font: Atkinson Hyperlegible, SIL Open Font License (`jobhunter/web/static/fonts/OFL.txt`).
+
+## US city list (jobhunter/data/us_cities.txt)
+
+The 1,000 largest US cities, from [plotly/datasets](https://github.com/plotly/datasets)
+`us-cities-top-1k.csv`. MIT License, Copyright (c) 2019-2024 Plotly Technologies Inc.

@@ -208,6 +208,13 @@ kbd { font-family: inherit; border: 1px solid var(--rule); border-bottom-width: 
 .chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0 var(--s3); }
 .chip { border: 1.5px solid var(--ink-2); border-radius: 999px; padding: 4px 12px; background: var(--paper); cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip.on { background: var(--wash); border-color: var(--ink); cursor: default; display: inline-flex; align-items: center; gap: var(--s1); }
+.chip-x { border: 0; background: transparent; cursor: pointer; font-size: 1.1em; line-height: 1; padding: 0 2px; color: var(--ink-2); }
+.chip-x:hover { color: var(--ink); }
+.wizard .field { margin: var(--s5) 0; }
+.wizard .field-label { display: block; font-weight: 700; margin-bottom: var(--s1); }
+.wizard fieldset.field { border: 0; padding: 0; }
+.wizard .row .field { margin-top: 0; }
 .answers { margin: 0; }
 .answers div { display: grid; grid-template-columns: 16ch 1fr auto; gap: var(--s3); padding: var(--s3) 0; border-bottom: 1px solid var(--rule); }
 .answers dt { font-weight: 700; }

@@ -328,3 +328,20 @@ def test_stays_up_without_the_idle_option(demo, monkeypatch):
     assert t.is_alive()
     assert _post(app, "/api/quit") == 200
     t.join(5)
+
+
+def test_setup_reads_the_resume_and_offers_lists(ui):
+    resume = (b"Jordan Rivera\nChicago, IL | jordan@example.com\nEXPERIENCE\n"
+              b"Lakeshore Community Bank, Chicago, IL     2021 - Present\nSenior Credit Underwriter\n"
+              b"SKILLS: Excel, Argus\n")
+    status, up = ui.call("/api/setup/resume", raw=resume, headers={"X-Filename": "resume.txt"})
+    assert status == 200 and up["city"] == "Chicago, IL" and up["titles"] == ["Senior Credit Underwriter"]
+    assert up["search_titles"] == ["Credit Underwriter"] and up["current_employers"] == ["Lakeshore Community Bank"]
+    assert {"Excel", "Argus"} <= set(up["skills"])
+    status, info = ui.call("/api/setup")
+    assert "Washington, DC" in info["cities"] and info["fields"]
+    status, found = ui.call("/api/setup/titles?q=nurse")
+    assert status == 200 and any("Nurse" in t for t in found["titles"])
+    # a new resume of another type replaces the old one
+    status, up2 = ui.call("/api/setup/resume", raw=b"x", headers={"X-Filename": "resume.md"})
+    assert status == 200 and not (ui.folder / "candidate" / "base_resume.txt").exists()

@@ -407,9 +407,39 @@ class App:
 
     # -- setup ------------------------------------------------------------------------------
     def setup_info(self, q, body):
-        from ..setup import QUESTIONS, current_answers
-        return {"has_profile": self.profile_path.exists(), "current": current_answers(self.base),
+        from ..setup import FIELDS, QUESTIONS, current_answers, us_cities
+        current = current_answers(self.base)
+        resume = self._resume_info(current.get("resume"))
+        return {"has_profile": self.profile_path.exists(), "current": current, "resume": resume,
+                "cities": us_cities(), "fields": FIELDS,
                 "questions": [{"key": k, "prompt": pr, "kind": kind, "default": d} for k, pr, kind, d in QUESTIONS]}
+
+    def _resume_info(self, rel):
+        """What setup read from the saved resume (titles, employers, city, skills), or None."""
+        if not rel:
+            return None
+        path = (self.base / rel).resolve()
+        if self.base.resolve() not in path.parents or not path.is_file():
+            return None
+        from ..resume_parse import parse_resume_file
+        from ..setup import search_titles
+        try:
+            parsed = parse_resume_file(path)
+        except Exception as e:  # an unreadable file shouldn't block setup
+            log.warning(f"ui: couldn't read {path.name}: {e}")
+            return {"path": rel, "file": path.name, "error": "Couldn't read this file; you can still fill in the rest."}
+        return {"path": rel, "file": path.name, **parsed, "search_titles": search_titles(parsed["titles"])}
+
+    def setup_titles(self, q, body):
+        """Job titles for the dropdowns as you type: occupation names and the titles under them."""
+        from .. import occupations
+        text = (q.get("q") or [""])[0][:80]
+        out: list[str] = []
+        for o in occupations.search(text, limit=8):
+            for t in [*o["examples"], o["title"]]:
+                if t not in out:
+                    out.append(t)
+        return {"titles": out[:25]}
 
     def setup_suggest(self, q, body):
         from .. import occupations
@@ -423,9 +453,15 @@ class App:
         if not raw:
             raise ApiError(400, "The file was empty.")
         from ..fileio import write_bytes_atomic
+        for old in (self.base / "candidate").glob("base_resume.*"):  # one resume: a new one replaces the old
+            if old.suffix.lower() in RESUME_TYPES and old.suffix.lower() != ext:
+                old.unlink(missing_ok=True)
         dest = self.base / "candidate" / f"base_resume{ext}"
         write_bytes_atomic(dest, raw)
-        return {"path": f"candidate/{dest.name}"}
+        rel = f"candidate/{dest.name}"
+        info = self._resume_info(rel) or {"path": rel}
+        info["original_name"] = Path(filename).name[:120]
+        return info
 
     def setup_run(self, q, body):
         from ..setup import run_setup
@@ -560,6 +596,7 @@ class App:
             ("GET", "/api/companies"): self.companies, ("POST", "/api/companies"): self.companies_change,
             ("GET", "/api/setup"): self.setup_info, ("POST", "/api/setup/suggest"): self.setup_suggest,
             ("POST", "/api/setup"): self.setup_run,
+            ("GET", "/api/setup/titles"): self.setup_titles,
             ("GET", "/api/settings"): self.settings, ("POST", "/api/settings"): self.settings_save,
             ("POST", "/api/quit"): self.quit,
         }

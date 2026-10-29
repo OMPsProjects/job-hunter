@@ -89,15 +89,19 @@ Claude Code. Try it with made-up data first: `python scripts/make_demo.py /tmp/j
 
 ## Set up (5 minutes)
 
-```bash
-job-hunter setup
-```
+On the web page, **Setup** starts with your resume. job-hunter reads your job titles, employers,
+city, skills, level and years from it and fills in four short pages for you to check:
 
-It asks, one at a time: your resume file, the kind of work you want, job titles (plus ones you'd
-also consider and any career change), level, years of experience, skills, cities in order, remote,
-pay floor and target, companies and kinds of roles to avoid, and companies you'd like to work for.
-After your titles, it suggests related titles and skills from standard occupation data; type the
-numbers of the ones you want.
+1. **Your resume.**
+2. **The jobs you want:** titles to search (from your resume, cleaned up for job boards: "Vice
+   President, Senior Commercial Loan Underwriter" becomes "Commercial Loan Underwriter"), with a type-ahead list of job titles; titles you'd also consider; levels (pick
+   several).
+3. **Where:** cities picked from a list (or "Use my city"), and remote: cities only, cities and
+   remote, or remote only.
+4. **Pay, skills and companies:** the skills from your resume are already in; add others. Skip your
+   current employer or all past employers with one click.
+
+In a terminal, `job-hunter setup` asks the same things one at a time.
 It writes three private files:
 
 | File | What it holds |

@@ -54,6 +54,7 @@ class Profile:
         s = data.get("search", {}) or {}
         self.locations = list(s.get("locations", []))
         self.include_remote = bool(s.get("include_remote", True))
+        self.remote_only = bool(s.get("remote_only", False)) and self.include_remote
         self.results_per_search = int(s.get("results_per_search", 25))
         self.hours_old = int(s.get("hours_old", 168))
         self.sites = list(s.get("sites", DEFAULT_SITES))

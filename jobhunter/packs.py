@@ -23,7 +23,7 @@ import yaml
 
 @lru_cache(maxsize=1)
 def all_packs() -> dict:
-    out = {}
+    out: dict[str, dict] = {}
     folder = files("jobhunter") / "data" / "packs"
     if not folder.is_dir():
         return out

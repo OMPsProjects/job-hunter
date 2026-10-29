@@ -49,7 +49,7 @@ def test_setup_refuses_to_overwrite(tmp_path):
 
 
 def test_setup_interactive_reprompts(tmp_path):
-    replies = iter(["", "", "", "Staff Accountant", "", "", "nonsense", "senior", "", "", "", "", "", "", "", "", "", "", "", ""])
+    replies = iter(["", "", "", "Staff Accountant", "", "", "nonsense", "senior", "", "", "", "", "", "", "", "", "", "", "", "", ""])
     said = []
     setup.ask_all({}, ask=lambda prompt: next(replies), say=said.append)
     assert any("At least one title" in s for s in said)

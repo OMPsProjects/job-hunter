@@ -26,7 +26,7 @@ const STATUS_TEXT = {
 const SOURCE_TEXT = {
   jobspy: "Indeed and other boards", indeed: "Indeed", linkedin: "LinkedIn", google: "Google Jobs", glassdoor: "Glassdoor",
   zip_recruiter: "ZipRecruiter", remotive: "Remotive", himalayas: "Himalayas", remoteok: "RemoteOK", themuse: "The Muse",
-  arbeitnow: "Arbeitnow", adzuna: "Adzuna", usajobs: "USAJobs", jooble: "Jooble", company_feeds: "Employers' career sites",
+  arbeitnow: "Arbeitnow", adzuna: "Adzuna", usajobs: "USAJobs", jooble: "Jooble", dreamwork: "Dreamwork", company_feeds: "Employers' career sites",
   greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable",
   recruitee: "Recruitee", workday: "Workday", unknown: "Not recorded",
 };

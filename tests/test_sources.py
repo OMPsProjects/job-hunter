@@ -40,6 +40,8 @@ ROUTES = [
     (r"apply\.workable\.com/api/v3/accounts/[^/]+/jobs", "workable_list.json"),
     (r"apply\.workable\.com/api/v2/accounts/[^/]+/jobs/", "workable_job.json"),
     (r"recruitee\.com", "recruitee.json"),
+    (r"api\.dreamworkhq\.com/listings/[0-9a-f-]{36}$", "dreamwork_job.json"),
+    (r"api\.dreamworkhq\.com/listings\?", "dreamwork_list.json"),
 ]
 
 
@@ -120,3 +122,47 @@ def test_remote_location_filter(profile):
     rows = apis.remotive(profile)
     assert all(not r.get("location") or True for r in rows)  # runs with a restrictive filter
     assert len(rows) <= len(load("remotive.json")["jobs"])
+
+
+# ----------------------------- dreamwork (opt-in) ----------------------------
+
+def test_dreamwork_off_by_default():
+    assert Profile({"tracks": {"core": ["x"]}}).source_on("dreamwork") is False
+
+
+def test_dreamwork_rows(profile):
+    rows = apis.dreamwork(profile)
+    check_rows(rows, site="dreamwork")
+    first, last = rows[0], rows[-1]
+    assert first["job_url"].startswith("https://") and "dreamworkhq.com" not in first["job_url"]  # employer's posting
+    assert "Attain Finance" in first["description"]  # fetched from the detail route
+    assert last["job_url"].startswith("https://www.dreamworkhq.com/job/") and "no employer link" in last["note"]
+    assert last["min_amount"] is None and last["max_amount"] is None  # estimated pay is ignored
+
+
+def test_dreamwork_sends_only_search_words(monkeypatch, profile):
+    seen = []
+
+    def spy(url, **k):
+        seen.append((url, k))
+        return fake_http(url)
+    monkeypatch.setattr(apis, "http_json", spy)
+    apis.dreamwork(profile)
+    assert seen and all(u.startswith("https://api.dreamworkhq.com/listings") for u, _ in seen)
+    assert all(not k.get("headers") and not k.get("body") for _, k in seen)  # no key, install id or resume
+    assert "search=credit+risk+manager" in seen[0][0] and "location=Chicago" in seen[0][0]
+
+
+def test_dreamwork_unplaced_location_is_skipped(monkeypatch, profile):
+    worldwide = {**load("dreamwork_list.json"), "locationFilter": None}
+    monkeypatch.setattr(apis, "http_json", lambda url, **k: worldwide)
+    profile.include_remote = False
+    assert apis.dreamwork(profile) == []
+
+
+def test_dreamwork_ignores_bad_ids_and_far_titles(monkeypatch, profile):
+    data = load("dreamwork_list.json")
+    data["listings"][0]["id"] = "../../admin"
+    profile.title_match_threshold = 0.99
+    monkeypatch.setattr(apis, "http_json", lambda url, **k: data if "?" in url else {})
+    assert apis.dreamwork(profile) == []

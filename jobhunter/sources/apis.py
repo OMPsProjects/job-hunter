@@ -6,6 +6,7 @@ title. Boards without it (Remotive, RemoteOK, The Muse, Arbeitnow) are pulled on
 locally: a posting is kept when its title is close enough to one of your search titles.
 """
 import os
+import re
 import time
 
 from ..common import html_to_text, http_json, parse_salary_text, qs, title_similarity
@@ -250,5 +251,78 @@ def jooble(profile):
     return rows
 
 
+# ----------------------------- opt-in aggregator ----------------------------
+
+DREAMWORK_API = "https://api.dreamworkhq.com"
+DREAMWORK_DETAILS_PER_RUN = 40  # one extra request per kept posting, for its description
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _dreamwork_get(path, params=None):
+    """Guest (no key) request to Dreamwork's public listings API. No account, no resume, no
+    install id or telemetry headers: only the search words and place. The guest limit is 60
+    requests a minute, so requests are spaced a little over a second apart."""
+    time.sleep(1.1)
+    return http_json(f"{DREAMWORK_API}{path}" + (f"?{qs(params)}" if params else ""))
+
+
+def dreamwork(profile):
+    """Dreamwork (dreamworkhq.com) aggregates ~2M postings from employers' career sites. Off by
+    default: when on, your search titles and cities are sent to Dreamwork. The link kept is the
+    employer's own posting when Dreamwork has it, so verification checks the real page."""
+    days = min(90, max(1, profile.hours_old // 24))
+    passes = [(loc, False) for loc in profile.locations]
+    if profile.include_remote:
+        passes.append(("United States" if profile.api_country == "us" else "", True))
+    rows, seen = [], set()
+    for track, q in profile.all_titles():
+        for loc, remote in passes:
+            params = {"search": q, "location": loc, "postedWithin": days, "limit": 25, "pagination": "cursor",
+                      "workType": "remote" if remote else None}
+            try:
+                data = _dreamwork_get("/listings", params) or {}
+            except Exception as e:
+                log.warning(f"dreamwork / {q} / {loc or 'remote'}: {e}", extra={"source": "dreamwork"})
+                continue
+            if loc and not data.get("locationFilter"):
+                # Dreamwork couldn't place this location and returned results from anywhere
+                log.warning(f"dreamwork: location {loc!r} not recognized, skipped", extra={"source": "dreamwork"})
+                continue
+            for j in data.get("listings") or []:
+                lid = str(j.get("id") or "")
+                if not _UUID.match(lid) or lid in seen:
+                    continue
+                seen.add(lid)
+                if best_track(j.get("title"), profile)[0] is None:
+                    continue  # Dreamwork's search is keyword-loose; keep titles close to yours
+                src = j.get("sourceUrl")
+                direct = isinstance(src, str) and src.startswith(("https://", "http://"))
+                inferred = j.get("salarySource") != "posted" or (j.get("salaryCurrency") or "USD") != "USD"
+                rows.append(dict(title=j.get("title"), company=j.get("companyName"), location=j.get("location"),
+                                 is_remote=j.get("remoteType") == "remote",
+                                 job_url=src if direct else f"https://www.dreamworkhq.com/job/{lid}",
+                                 date_posted=str(j.get("postedAt") or "")[:10], description="",
+                                 site="dreamwork", track=track, query=q, _dw_id=lid,
+                                 min_amount=None if inferred else j.get("salaryMin"),
+                                 max_amount=None if inferred else j.get("salaryMax"),
+                                 interval="yearly", currency="USD",
+                                 note=None if direct else "Dreamwork page; no employer link"))
+    # descriptions: one request each, newest first, up to the cap
+    rows.sort(key=lambda r: r["date_posted"], reverse=True)
+    for r in rows[:DREAMWORK_DETAILS_PER_RUN]:
+        try:
+            d = (_dreamwork_get(f"/listings/{r['_dw_id']}") or {}).get("listing") or {}
+            r["description"] = html_to_text(d.get("description"))
+        except Exception as e:
+            log.warning(f"dreamwork description {r['title']}: {e}", extra={"source": "dreamwork"})
+    for r in rows[DREAMWORK_DETAILS_PER_RUN:]:
+        r["note"] = "; ".join(x for x in (r["note"], "no description fetched (per-run cap)") if x)
+    for r in rows:
+        del r["_dw_id"]
+    _log("dreamwork", len(rows), "per title x location, guest")
+    return rows
+
+
 SOURCES = {"remotive": remotive, "himalayas": himalayas, "remoteok": remoteok, "themuse": themuse,
-           "arbeitnow": arbeitnow, "adzuna": adzuna, "usajobs": usajobs, "jooble": jooble}
+           "arbeitnow": arbeitnow, "adzuna": adzuna, "usajobs": usajobs, "jooble": jooble,
+           "dreamwork": dreamwork}

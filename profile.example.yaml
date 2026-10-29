@@ -31,6 +31,7 @@ sources:
   adzuna: auto                 # ADZUNA_APP_ID + ADZUNA_APP_KEY      (developer.adzuna.com)
   usajobs: auto                # USAJOBS_API_KEY + USAJOBS_EMAIL      (developer.usajobs.gov)
   jooble: auto                 # JOOBLE_API_KEY                       (jooble.org/api/about)
+  dreamwork: false             # no key, ~2M postings from employers' sites; sends your titles + cities to dreamworkhq.com
   company_feeds: true          # the company_feeds list below
 
 # Opt-in: boards that block scripts. The Claude skill searches these in your browser when you

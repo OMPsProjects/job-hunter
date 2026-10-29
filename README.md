@@ -157,6 +157,7 @@ browser-search list that the Claude skill checks for you on request.
 | Remotive, Himalayas, RemoteOK | no | yes | remote jobs |
 | The Muse | no | yes | filtered by title (no keyword search) |
 | Arbeitnow | no | no | mostly Europe |
+| Dreamwork | no | **no** | about 2 million postings gathered from employers' career sites. Turn on with `dreamwork: true` under `sources:`. Sends your search titles and cities (nothing else: no resume, no account) to dreamworkhq.com. Links go to the employer's own posting when Dreamwork has it. Guest access returns 25 roles per search, and descriptions are fetched for the 40 newest |
 | Adzuna, USAJobs, Jooble | free key | when key set | put keys in `.env`: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `USAJOBS_API_KEY`, `USAJOBS_EMAIL`, `JOOBLE_API_KEY` |
 | Employer career sites | no | your list | Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Recruitee, Workday |
 

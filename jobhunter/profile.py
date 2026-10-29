@@ -32,6 +32,7 @@ DEFAULT_SOURCES = {
     "adzuna": "auto",    # ADZUNA_APP_ID + ADZUNA_APP_KEY (free at developer.adzuna.com)
     "usajobs": "auto",   # USAJOBS_API_KEY + USAJOBS_EMAIL (free at developer.usajobs.gov)
     "jooble": "auto",    # JOOBLE_API_KEY (free at jooble.org/api/about)
+    "dreamwork": False,  # keyless aggregator; off because it sends your titles and cities to dreamworkhq.com
     "company_feeds": True,
 }
 SOURCE_KEYS = {

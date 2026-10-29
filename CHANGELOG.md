@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 (2026-10-29): Dreamwork listings (opt-in)
+
+- **New source: Dreamwork** (dreamworkhq.com), about 2 million postings gathered from employers'
+  career sites. Off by default; turn it on with `dreamwork: true` under `sources:`. It uses
+  Dreamwork's public guest API: no account, no key, no resume uploaded, no telemetry. Only your
+  search titles and cities are sent. Each role links to the employer's own posting when Dreamwork
+  has it, so verification checks the real page. Titles far from yours are dropped, estimated pay
+  is ignored, and a city Dreamwork can't place is skipped rather than searched worldwide.
+- **CI:** one Mac job instead of four, and it no longer marks a run failed when GitHub has no Mac
+  machine free.
+
 ## 1.2.1 (2026-10-28): security review
 
 An audit following Cloudflare's security-audit method (five independent reviewers, a coverage

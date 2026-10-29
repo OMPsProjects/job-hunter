@@ -12,7 +12,7 @@ what you saw and how to reproduce it, using the fictional example files, never y
   tracker, tailored resumes and run history live in gitignored files in your folder. There is no
   server and no telemetry.
 - **What goes over the network:** your search titles and cities go to the job boards and APIs
-  you enable; company names go to ATS APIs during verification. With `--llm` or `resume --llm`,
+  you enable (Dreamwork, off by default, gets them too when you turn it on); company names go to ATS APIs during verification. With `--llm` or `resume --llm`,
   your candidate summary and job descriptions go to the Anthropic API. Public reference data is
   downloaded, with nothing about you in the request: the careers-site directory from
   storage.stapply.ai (the ats-scrapers project), and BLS pay figures from api.bls.gov (the request

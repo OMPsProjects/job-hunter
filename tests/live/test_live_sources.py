@@ -45,3 +45,12 @@ def test_jobspy_indeed():
     df = jobspy.scrape_jobs(site_name=["indeed"], search_term="accountant", location="Chicago, IL",
                             results_wanted=5, country_indeed="USA")
     assert len(df) > 0, "Indeed via python-jobspy returned nothing"
+
+
+def test_dreamwork(profile, monkeypatch):
+    monkeypatch.setattr(apis, "DREAMWORK_DETAILS_PER_RUN", 2)
+    profile.include_remote = False
+    rows = apis.dreamwork(profile)
+    assert rows, "dreamwork returned nothing: the API may be down or its format changed"
+    assert all(str(r["job_url"]).startswith("http") for r in rows)
+    assert any(len(r["description"]) > 200 for r in rows[:2]), "no description from the detail route"

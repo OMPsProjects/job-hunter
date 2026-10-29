@@ -277,3 +277,54 @@ def test_stranger_on_the_port_is_not_trusted(tmp_path, capsys, monkeypatch):
     assert got["port"] != port and not opened
     assert "is taken by another program" in capsys.readouterr().out
     assert not (tmp_path / web.LAUNCHER).exists()  # removed when job-hunter stops
+
+
+def _serve_in_thread(folder, **kw):
+    holder, ready = {}, threading.Event()
+
+    def on_ready(srv, app):
+        holder.update(server=srv, app=app)
+        ready.set()
+    t = threading.Thread(target=web.serve, args=(folder / "profile.yaml",),
+                         kwargs={"port": 0, "open_browser": False, "ready": on_ready, **kw}, daemon=True)
+    t.start()
+    assert ready.wait(10)
+    return t, holder["app"]
+
+
+def _post(app, path, token=True):
+    h = {"Content-Type": "application/json", **({"X-JH-Token": app.token} if token else {})}
+    req = urllib.request.Request(f"http://127.0.0.1:{app.port}{path}", data=b"{}", headers=h, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+
+
+def test_quit_button_stops_it(demo):
+    from jobhunter.web.server import LAUNCHER
+    t, app = _serve_in_thread(demo)
+    assert _post(app, "/api/quit", token=False) == 403  # another page can't close it
+    assert t.is_alive()
+    assert _post(app, "/api/quit") == 200
+    t.join(5)
+    assert not t.is_alive() and not (demo / LAUNCHER).exists()
+
+
+def test_stops_by_itself_when_no_page_is_open(demo, monkeypatch):
+    monkeypatch.setattr(web, "IDLE_CHECK_SECONDS", 0.05)
+    monkeypatch.setattr(web, "IDLE_MINUTES", 0.3 / 60)
+    t, app = _serve_in_thread(demo, quit_when_idle=True)
+    t.join(5)
+    assert not t.is_alive()
+
+
+def test_stays_up_without_the_idle_option(demo, monkeypatch):
+    monkeypatch.setattr(web, "IDLE_CHECK_SECONDS", 0.05)
+    monkeypatch.setattr(web, "IDLE_MINUTES", 0.1 / 60)
+    t, app = _serve_in_thread(demo)
+    t.join(0.6)
+    assert t.is_alive()
+    assert _post(app, "/api/quit") == 200
+    t.join(5)

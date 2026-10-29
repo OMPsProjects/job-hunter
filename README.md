@@ -33,11 +33,14 @@ your say-so.
      refuses, open **System Settings > Privacy & Security** and click **Open Anyway**. Macs ask
      this once for any script downloaded from the internet.
    - **Linux:** run `./start.sh`.
-3. The first time, it sets itself up, which takes 2-5 minutes. If your computer doesn't have
-   Python, it offers to download a private copy just for job-hunter (using
-   [uv](https://docs.astral.sh/uv/) from Astral; no admin rights needed). It also offers a desktop
-   shortcut (Windows) and, if you use Claude Code, to add the job-hunter skill.
-4. Your browser opens job-hunter. Keep the small black window open while you use it; close it to stop.
+3. The first time, it sets itself up, which takes 2-5 minutes; there's nothing to answer. If your
+   computer doesn't have Python, it downloads a private copy just for job-hunter (using
+   [uv](https://docs.astral.sh/uv/) from Astral; no admin rights needed, nothing else changes). On
+   Windows it adds a desktop shortcut, and if you use Claude Code it adds the job-hunter skill
+   (and keeps it up to date each time you start).
+4. Your browser opens job-hunter. It runs in the background, so you can close the setup window.
+   To stop it, click **Quit** at the top of the page; it also stops by itself once no job-hunter
+   page has been open for 10 minutes.
 
 After that, double-click the same file (or the desktop shortcut) whenever you want job-hunter.
 Your files (profile, resume, results) live in **Documents/job-hunter**, separate from the

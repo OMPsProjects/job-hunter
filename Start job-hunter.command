@@ -2,6 +2,8 @@
 # job-hunter for macOS: double-click this file (the first time, right-click it and choose Open).
 # Linux: run ./start.sh, which is the same script.
 # First time: sets job-hunter up (2-5 minutes, needs internet). After that: opens the page.
+# job-hunter then runs in the background; use Quit on the page to stop it (it also stops by
+# itself when no job-hunter page has been open for 10 minutes).
 # Your own files (profile, resume, results) go in ~/Documents/job-hunter, so a new version of
 # job-hunter never touches them. Set JOBHUNTER_HOME to use another folder.
 set -u
@@ -9,11 +11,6 @@ APP="$(cd "$(dirname "$0")" && pwd)"
 VENV="$APP/.venv"
 JH="$VENV/bin/job-hunter"
 
-ask() {  # ask "question" -> 0 for yes
-  local a
-  read -r -p " $1 [y/n] " a || return 1
-  [[ "$a" =~ ^[Yy] ]]
-}
 fail() {
   echo
   echo " Setup didn't finish. The lines above say what went wrong. Check your internet connection"
@@ -60,14 +57,9 @@ if [ ! -x "$JH" ]; then
     # rights and without changing the rest of your computer.
     if ! command -v uv >/dev/null 2>&1 && [ -x "$HOME/.local/bin/uv" ]; then PATH="$HOME/.local/bin:$PATH"; fi
     if ! command -v uv >/dev/null 2>&1; then
-      echo " job-hunter needs Python 3.10 or newer, and this computer doesn't have a usable one."
-      echo " It can download a private copy for job-hunter now (about 40 MB, using the uv installer"
-      echo " from astral.sh). Or say no and install Python yourself from https://www.python.org/downloads/"
+      echo " This computer doesn't have Python 3.10 or newer, so job-hunter is downloading a private"
+      echo " copy just for itself (about 40 MB, using the uv installer from astral.sh). Nothing else changes."
       echo
-      if ! ask "Download it now?"; then
-        echo " Install Python 3.10 or newer, then run Start job-hunter again."
-        exit 1
-      fi
       curl -LsSf https://astral.sh/uv/install.sh | sh || fail
       PATH="$HOME/.local/bin:$PATH"
       command -v uv >/dev/null 2>&1 || fail
@@ -81,12 +73,13 @@ if [ ! -x "$JH" ]; then
   echo
   echo " Done."
   echo
-  # The Claude Code skill (tailoring resumes, filling applications), if Claude Code is installed.
-  if [ -d "$HOME/.claude" ] && [ ! -f "$HOME/.claude/skills/job-hunter/SKILL.md" ]; then
-    if ask "Claude Code is installed. Add the job-hunter skill to it?"; then
-      mkdir -p "$HOME/.claude/skills" && cp -R "$APP/skills/job-hunter" "$HOME/.claude/skills/" && echo " Skill added."
-    fi
-  fi
+fi
+
+# The Claude Code skill (tailoring resumes, filling applications), kept current with this version,
+# if Claude Code is on this computer.
+if [ -d "$HOME/.claude" ]; then
+  [ -f "$HOME/.claude/skills/job-hunter/SKILL.md" ] || echo " Adding the job-hunter skill to Claude Code."
+  mkdir -p "$HOME/.claude/skills/job-hunter" && cp -R "$APP/skills/job-hunter/." "$HOME/.claude/skills/job-hunter/"
 fi
 
 # --- every run: open the page ---------------------------------------------------------------------
@@ -96,6 +89,18 @@ cd "$DATA" || fail
 printf '%s\n' "$JH" > .job-hunter-command
 echo
 echo " Your job-hunter files are in $DATA"
-echo " Keep this window open while you use job-hunter. Close it (or press Ctrl+C) to stop."
+# Runs in the background, so this window can be closed. A copy that's already running is reused.
+nohup "$JH" ui --quit-when-idle >"$DATA/.job-hunter.log" 2>&1 &
+disown 2>/dev/null || true
+for _ in $(seq 1 30); do  # wait for it to answer (up to 30 seconds)
+  if [ -f "$DATA/open-job-hunter.html" ]; then
+    echo " job-hunter is open in your browser. You can close this window."
+    exit 0
+  fi
+  sleep 1
+done
 echo
-"$JH" ui
+echo " job-hunter didn't start in the background. Here's what it said:"
+cat "$DATA/.job-hunter.log"
+read -r -p " Press Enter to close." _ || true
+exit 1

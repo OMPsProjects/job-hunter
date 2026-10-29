@@ -158,6 +158,14 @@ class App:
         self.write_lock = threading.Lock()  # one writer at a time for tracker / labels / settings
         self.cache: dict = {}
         self.cache_lock = threading.Lock()
+        self.last_seen = time.monotonic()  # last request from the page (it checks in every 15 s)
+        self.server: ThreadingHTTPServer | None = None
+
+    def quit(self, q, body):
+        """The page's Quit button: stop any running search and shut down."""
+        if self.server is not None:
+            threading.Timer(0.3, self.server.shutdown).start()
+        return {"ok": True}
 
     # -- helpers -------------------------------------------------------------
     def profile(self, required=False):
@@ -553,6 +561,7 @@ class App:
             ("GET", "/api/setup"): self.setup_info, ("POST", "/api/setup/suggest"): self.setup_suggest,
             ("POST", "/api/setup"): self.setup_run,
             ("GET", "/api/settings"): self.settings, ("POST", "/api/settings"): self.settings_save,
+            ("POST", "/api/quit"): self.quit,
         }
 
 
@@ -621,6 +630,7 @@ def make_handler(app: App):
                 return self._static(parsed.path)
             if not secrets.compare_digest(self.headers.get("X-JH-Token") or "", app.token):
                 return self._send(403, {"error": "This page has an old key. Open job-hunter again from its Start file or shortcut."})
+            app.last_seen = time.monotonic()
             q = urllib.parse.parse_qs(parsed.query)
             try:
                 length = int(self.headers.get("Content-Length") or 0)
@@ -715,8 +725,26 @@ def _open(path):
     webbrowser.open(Path(path).resolve().as_uri())
 
 
-def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready=None):
-    """Run until Ctrl+C. `ready(server, app)` is called once listening (tests use it)."""
+IDLE_MINUTES = 10
+IDLE_CHECK_SECONDS = 15
+
+
+def _watch_idle(server, app, minutes):
+    """Shut down once no job-hunter page has checked in for `minutes` and nothing is running, so
+    a copy started in the background doesn't linger after you close the tab."""
+    while True:
+        time.sleep(IDLE_CHECK_SECONDS)
+        if app.task.running():
+            app.last_seen = time.monotonic()
+        elif time.monotonic() - app.last_seen > minutes * 60:
+            print(f"No job-hunter page open for {minutes} minutes: stopping.", flush=True)
+            server.shutdown()
+            return
+
+
+def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready=None, quit_when_idle=False):
+    """Run until Ctrl+C, the page's Quit button, or (quit_when_idle) no open page for a while.
+    `ready(server, app)` is called once listening (tests use it)."""
     app = App(profile_path, port)
     try:
         server = _Server(("127.0.0.1", port), make_handler(app))
@@ -734,7 +762,10 @@ def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready
         print(f"Port {port} is taken by another program, so job-hunter is using port "
               f"{server.server_address[1]} instead.", flush=True)
     app.port = server.server_address[1]
+    app.server = server
     server.daemon_threads = True
+    if quit_when_idle:
+        threading.Thread(target=_watch_idle, args=(server, app, IDLE_MINUTES), daemon=True).start()
     launcher = write_launcher(app)
     print(f"job-hunter is open at http://127.0.0.1:{app.port}/  (Ctrl+C to stop)\n"
           f"Using the files in {app.base}\n"

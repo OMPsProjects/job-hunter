@@ -28,6 +28,10 @@
   checked by hand, instead of `verified_open`.
 - **Re-check before applying:** `job-hunter verify --tracker` re-checks every tracked job not yet
   submitted (`--mark-closed` marks closed ones skipped), and the apply steps run a check first.
+- **Simpler start:** the Start files ask nothing. They download Python if needed, add the desktop
+  shortcut (Windows) and keep the Claude Code skill current, then run job-hunter in the
+  background: no window to keep open. **Quit** on the page stops it, and it stops by itself when
+  no job-hunter page has been open for 10 minutes (`job-hunter ui --quit-when-idle`).
 - **CI:** Mac tests run weekly and on demand in their own workflow instead of on every push, so a
   run GitHub can't find a Mac machine for no longer marks main as failed.
 

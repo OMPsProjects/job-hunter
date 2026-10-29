@@ -1,6 +1,8 @@
 @echo off
 rem job-hunter for Windows: double-click this file.
 rem First time: sets job-hunter up (2-5 minutes, needs internet). After that: opens the page.
+rem job-hunter then runs in the background; use Quit on the page to stop it (it also stops by
+rem itself when no job-hunter page has been open for 10 minutes).
 rem Your own files (profile, resume, results) go in Documents\job-hunter, so a new version of
 rem job-hunter never touches them. Set JOBHUNTER_HOME to use another folder.
 setlocal EnableExtensions
@@ -43,15 +45,12 @@ if not exist "%USERPROFILE%\.local\bin\uv.exe" goto ask_uv
 set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 goto have_uv
 :ask_uv
-echo  job-hunter needs Python 3.10 or newer, and this computer doesn't have it.
-echo  It can download a private copy for job-hunter now (about 40 MB, using the uv installer
-echo  from astral.sh). Or say no and install Python yourself from https://www.python.org/downloads/
+echo  This computer doesn't have Python 3.10 or newer, so job-hunter is downloading a private copy
+echo  just for itself (about 40 MB, using the uv installer from astral.sh). Nothing else changes.
 echo.
-choice /C YN /M " Download it now"
-if errorlevel 2 goto no_python
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
 set "PATH=%USERPROFILE%\.local\bin;%PATH%"
-where uv >nul 2>nul || goto fail
+where uv >nul 2>nul || goto no_python
 :have_uv
 echo  Getting Python and job-hunter's parts...
 if exist "%VENV%" rmdir /s /q "%VENV%"
@@ -71,32 +70,42 @@ if not exist "%JH%" goto fail
 echo.
 echo  Done.
 echo.
-rem A desktop shortcut, if they want one.
-choice /C YN /M " Put a job-hunter shortcut on your desktop"
-if errorlevel 2 goto skip_shortcut
-powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'job-hunter.lnk')); $s.TargetPath=(Join-Path $env:APP 'Start job-hunter.bat'); $s.WorkingDirectory=$env:APP; $s.Save()"
-:skip_shortcut
-rem The Claude Code skill (tailoring resumes, filling applications), if Claude Code is installed.
-if not exist "%USERPROFILE%\.claude" goto run
-if exist "%USERPROFILE%\.claude\skills\job-hunter\SKILL.md" goto run
-choice /C YN /M " Claude Code is installed. Add the job-hunter skill to it"
-if errorlevel 2 goto run
-xcopy /E /I /Q /Y "%APP%\skills\job-hunter" "%USERPROFILE%\.claude\skills\job-hunter" >nul && echo  Skill added.
+rem A desktop shortcut, so next time you don't need this folder.
+powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'job-hunter.lnk')); $s.TargetPath=(Join-Path $env:APP 'Start job-hunter.bat'); $s.WorkingDirectory=$env:APP; $s.WindowStyle=7; $s.Save()" && echo  Added a job-hunter shortcut to your desktop.
 
 rem --- every run: open the page ---------------------------------------------------------------
 :run
+rem The Claude Code skill (tailoring resumes, filling applications), kept current with this
+rem version, if Claude Code is on this computer.
+if not exist "%USERPROFILE%\.claude" goto skill_done
+if not exist "%USERPROFILE%\.claude\skills\job-hunter\SKILL.md" echo  Adding the job-hunter skill to Claude Code.
+xcopy /E /I /Q /Y "%APP%\skills\job-hunter" "%USERPROFILE%\.claude\skills\job-hunter" >nul
+:skill_done
 if not exist "%DATA%" mkdir "%DATA%"
 cd /d "%DATA%"
 rem Tells Claude Code (and you) where the job-hunter command is, since it isn't on PATH.
 > ".job-hunter-command" <nul set /p "=%JH%"
 echo.
 echo  Your job-hunter files are in "%DATA%"
-echo  Keep this window open while you use job-hunter. Close it to stop.
+echo  Opening job-hunter in your browser. This window closes by itself.
+rem Runs in the background (no window to keep open). A copy that's already running is reused.
+powershell -NoProfile -Command "Start-Process -WindowStyle Hidden -FilePath $env:JH -ArgumentList 'ui','--quit-when-idle' -WorkingDirectory $env:DATA"
+rem Wait for it to answer (up to 30 seconds), then this window can go. (A goto loop, not a
+rem ( ) block: see the note at the top about folder names with brackets.)
+set /a WAITED=0
+:wait_start
+if exist "%DATA%\open-job-hunter.html" exit /b 0
+if %WAITED% GEQ 30 goto start_failed
+ping -n 2 127.0.0.1 >nul
+set /a WAITED+=1
+goto wait_start
+:start_failed
+echo.
+echo  job-hunter didn't start in the background. Starting it here so you can see why:
 echo.
 "%JH%" ui
-echo.
 pause
-exit /b 0
+exit /b 1
 
 :no_python
 echo.

@@ -685,7 +685,7 @@ def cmd_ui(p, args):
     # setup from the page writes files, and they belong where you are).
     path = Path(args.profile) if args.profile else Path.cwd() / "profile.yaml"
     no_browser = args.no_browser or bool(os.environ.get("JOBHUNTER_NO_BROWSER"))
-    return serve(path, port=args.port, open_browser=not no_browser)
+    return serve(path, port=args.port, open_browser=not no_browser, quit_when_idle=args.quit_when_idle)
 
 
 def cmd_scan(p, args):
@@ -939,6 +939,8 @@ def build_parser():
     ui = add("ui", help="open job-hunter in your browser (served on this computer only)")
     ui.add_argument("--port", type=int, default=8765)
     ui.add_argument("--no-browser", action="store_true", help="don't open a browser window")
+    ui.add_argument("--quit-when-idle", action="store_true",
+                    help="stop once no job-hunter page has been open for 10 minutes (the Start files use this)")
     so = add("stories", help="your interview story bank (candidate/stories.md): list | check")
     so.add_argument("action", choices=["list", "check"])
     so.add_argument("--file", help="default: candidate/stories.md")

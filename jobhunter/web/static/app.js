@@ -189,7 +189,7 @@ async function refreshStatus() {
   const el = document.getElementById("run-state");
   const s = state.status;
   if (!s && state.statusError === 403) { el.textContent = "job-hunter was restarted. Open it again from the Start file."; return; }
-  if (!s) { el.textContent = "Can't reach job-hunter. Is it still running?"; return; }
+  if (!s) { el.textContent = "job-hunter isn't running. Double-click Start job-hunter (or the desktop shortcut) to open it again."; return; }
   if (s.task && s.task.running) el.textContent = `${taskLabel(s.task.name)} is running...`;
   else if (s.last_run && s.last_run.run_at) {
     const when = new Date(s.last_run.run_at);
@@ -882,8 +882,24 @@ function needKey() {
       + "(or the job-hunter shortcut on your desktop) and it will open a working page.")));
 }
 
+function closedPage() {
+  setMain(h("div", { class: "notice" },
+    h("h1", {}, "job-hunter is closed"),
+    h("p", {}, "To open it again, double-click Start job-hunter (or the job-hunter shortcut on your desktop).")));
+  document.getElementById("run-state").textContent = "";
+  document.getElementById("quit").hidden = true;
+}
+
+async function quitApp() {
+  const s = state.status;
+  if (s && s.task && s.task.running && !window.confirm(`${taskLabel(s.task.name)} is still running. Stop it and quit?`)) return;
+  try { await api("/api/quit", { method: "POST" }); } catch { /* already gone */ }
+  closedPage();
+}
+
 if (!TOKEN) needKey();
 else {
+  document.getElementById("quit").addEventListener("click", quitApp);
   window.addEventListener("hashchange", route);
   refreshStatus().then(route);
   setInterval(refreshStatus, 15000);

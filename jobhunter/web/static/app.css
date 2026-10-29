@@ -75,6 +75,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tabs a:hover { opacity: 1; }
 .tabs a[aria-current="page"] { opacity: 1; border-bottom-color: var(--desk-ink); font-weight: 700; }
 .run-state { margin: 0 0 0 auto; font-size: var(--t-small); opacity: 0.9; max-width: none; }
+.desk #quit { background: transparent; color: var(--desk-ink); border-color: var(--desk-ink); opacity: 0.86; padding: var(--s1) var(--s3); }
+.desk #quit:hover { opacity: 1; background: var(--desk-2); }
 
 /* ---------- common pieces ---------- */
 main { padding: var(--s5); max-width: 1500px; margin: 0 auto; }

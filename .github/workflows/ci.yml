@@ -12,8 +12,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         python: ["3.10", "3.11", "3.12", "3.13"]
+        # One Mac job: Mac-specific problems come from the OS, not the Python version, and GitHub's
+        # Mac runners are often short on capacity (four queued Mac jobs kept getting cancelled).
+        include:
+          - os: macos-latest
+            python: "3.12"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7

@@ -1,7 +1,7 @@
 #!/bin/bash
 # job-hunter for macOS: double-click this file (the first time, right-click it and choose Open).
 # Linux: run ./start.sh, which is the same script.
-# First time: sets job-hunter up (2-5 minutes, needs internet). After that: opens the page.
+# First time: sets job-hunter up (about a minute, needs internet). After that: opens the page.
 # job-hunter then runs in the background; use Quit on the page to stop it (it also stops by
 # itself when no job-hunter page has been open for 10 minutes).
 # Your own files (profile, resume, results) go in ~/Documents/job-hunter, so a new version of
@@ -33,41 +33,43 @@ fi
 # --- first run: install -----------------------------------------------------------------------
 if [ ! -x "$JH" ]; then
   echo
-  echo " Setting up job-hunter. This happens once and takes 2-5 minutes."
+  echo " Setting up job-hunter. This happens once and takes about a minute."
   echo
-  PY=""
-  for c in python3.13 python3.12 python3.11 python3.10 python3; do
-    p="$(command -v "$c" 2>/dev/null)" || continue
-    # On a Mac without developer tools, /usr/bin/python3 is a stub that pops up an installer.
-    if [ "$p" = /usr/bin/python3 ] && [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then continue; fi
-    if "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then PY="$p"; break; fi
-  done
+  # uv (from Astral) installs job-hunter and, if needed, its own copy of Python. Both live inside
+  # this folder (.uv): nothing else on the computer changes, and deleting the folder removes it all.
+  UVDIR="$APP/.uv"
+  export UV_PYTHON_INSTALL_DIR="$UVDIR/python" UV_PYTHON_PREFERENCE=only-managed
+  UV="$UVDIR/uv"
   installed=no
-  if [ -n "$PY" ]; then
-    echo " Using $("$PY" --version). Getting job-hunter's parts..."
-    rm -rf "$VENV"
-    if "$PY" -m venv "$VENV" >/dev/null 2>&1; then
-      "$VENV/bin/python" -m pip install --quiet --upgrade pip
-      "$VENV/bin/python" -m pip install --quiet -e "$APP" && installed=yes
-    fi
-    [ "$installed" = yes ] || { echo " That Python couldn't set up job-hunter; trying a private copy instead."; rm -rf "$VENV"; }
+  if [ ! -x "$UV" ]; then
+    echo " Getting the installer..."
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL="$UVDIR" sh >/dev/null 2>&1 || true
   fi
-  if [ "$installed" = no ]; then
-    # No usable Python 3.10+. uv (from Astral) installs one just for job-hunter, without admin
-    # rights and without changing the rest of your computer.
-    if ! command -v uv >/dev/null 2>&1 && [ -x "$HOME/.local/bin/uv" ]; then PATH="$HOME/.local/bin:$PATH"; fi
-    if ! command -v uv >/dev/null 2>&1; then
-      echo " This computer doesn't have Python 3.10 or newer, so job-hunter is downloading a private"
-      echo " copy just for itself (about 40 MB, using the uv installer from astral.sh). Nothing else changes."
-      echo
-      curl -LsSf https://astral.sh/uv/install.sh | sh || fail
-      PATH="$HOME/.local/bin:$PATH"
-      command -v uv >/dev/null 2>&1 || fail
-    fi
+  if [ -x "$UV" ]; then
     echo " Getting Python and job-hunter's parts..."
     rm -rf "$VENV"
-    uv venv --python 3.12 "$VENV" || fail
-    uv pip install --python "$VENV/bin/python" -e "$APP" || fail
+    "$UV" venv --quiet --python 3.12 "$VENV" && "$UV" pip install --quiet --python "$VENV/bin/python" -e "$APP" \
+      && installed=yes
+  fi
+  if [ "$installed" = no ]; then
+    echo " Couldn't use the installer; trying this computer's own Python instead."
+    PY=""
+    for c in python3.13 python3.12 python3.11 python3.10 python3; do
+      p="$(command -v "$c" 2>/dev/null)" || continue
+      # On a Mac without developer tools, /usr/bin/python3 is a stub that pops up an installer.
+      if [ "$p" = /usr/bin/python3 ] && [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then continue; fi
+      if "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then PY="$p"; break; fi
+    done
+    if [ -z "$PY" ]; then
+      echo " This computer has no Python 3.10 or newer. Install it from https://www.python.org/downloads/"
+      echo " and run Start job-hunter again."
+      fail
+    fi
+    echo " Using $("$PY" --version) (this way takes a few minutes)..."
+    rm -rf "$VENV"
+    "$PY" -m venv "$VENV" || fail
+    "$VENV/bin/python" -m pip install --quiet --upgrade pip
+    "$VENV/bin/python" -m pip install --quiet -e "$APP" || fail
   fi
   [ -x "$JH" ] || fail
   echo

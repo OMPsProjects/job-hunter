@@ -33,6 +33,7 @@ dist/
 .coverage
 htmlcov/
 .venv/
+.uv/
 venv/
 
 # written by the Start job-hunter scripts and the web page (the page's key is in it)

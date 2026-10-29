@@ -32,6 +32,12 @@
   shortcut (Windows) and keep the Claude Code skill current, then run job-hunter in the
   background: no window to keep open. **Quit** on the page stops it, and it stops by itself when
   no job-hunter page has been open for 10 minutes (`job-hunter ui --quit-when-idle`).
+- **Faster, safer first start:** setup uses uv and takes about a minute instead of 2-5. uv and
+  Python stay inside the job-hunter folder. On Windows, starting job-hunter from inside the ZIP
+  (without extracting it) now says to extract it first instead of failing halfway.
+- **Direct download link:** each version is published as a GitHub release, so
+  `releases/latest/download/job-hunter.zip` always downloads the newest one, in a folder named
+  `job-hunter`.
 - **CI:** Mac tests run weekly and on demand in their own workflow instead of on every push, so a
   run GitHub can't find a Mac machine for no longer marks main as failed.
 

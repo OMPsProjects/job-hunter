@@ -23,8 +23,9 @@ your say-so.
 
 **The easy way (Windows, Mac, Linux): no terminal needed.**
 
-1. On this page, click **Code**, then **Download ZIP**. Unzip it somewhere you'll keep it, like
-   your Documents folder.
+1. Download **[job-hunter.zip](https://github.com/OMPsProjects/job-hunter/releases/latest/download/job-hunter.zip)**
+   (always the newest version). Unzip it somewhere you'll keep it, like your Documents folder:
+   on Windows, right-click it and choose **Extract All**; on a Mac, double-click it.
 2. Open the unzipped folder and start job-hunter:
    - **Windows:** double-click **Start job-hunter.bat**. If Windows says it protected your PC,
      click **More info**, then **Run anyway** (it's a plain-text script; open it in Notepad to read
@@ -33,9 +34,9 @@ your say-so.
      refuses, open **System Settings > Privacy & Security** and click **Open Anyway**. Macs ask
      this once for any script downloaded from the internet.
    - **Linux:** run `./start.sh`.
-3. The first time, it sets itself up, which takes 2-5 minutes; there's nothing to answer. If your
-   computer doesn't have Python, it downloads a private copy just for job-hunter (using
-   [uv](https://docs.astral.sh/uv/) from Astral; no admin rights needed, nothing else changes). On
+3. The first time, it sets itself up, which takes about a minute; there's nothing to answer. It
+   uses [uv](https://docs.astral.sh/uv/) from Astral to get job-hunter's parts and its own copy of
+   Python, all kept inside the job-hunter folder (no admin rights needed, nothing else changes). On
    Windows it adds a desktop shortcut, and if you use Claude Code it adds the job-hunter skill
    (and keeps it up to date each time you start).
 4. Your browser opens job-hunter. It runs in the background, so you can close the setup window.

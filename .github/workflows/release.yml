@@ -1,6 +1,6 @@
 name: Release
 # Publishing a release on GitHub (Releases > Draft a new release, tag v1.3.0) attaches
-# job-hunter.zip (the program, in a folder named job-hunter), so this link always downloads the
+# job-hunter.zip (unzips to a folder named job-hunter), so this link always downloads the
 # newest version:
 #   https://github.com/OMPsProjects/job-hunter/releases/latest/download/job-hunter.zip
 on:
@@ -30,7 +30,7 @@ jobs:
           v="$(python3 -c 'import re; print(re.search(r"\"(.+)\"", open("jobhunter/__init__.py").read()).group(1))')"
           [ "v$v" = "$TAG" ] || { echo "release tag $TAG but jobhunter/__init__.py says $v"; exit 1; }
       - name: Build the download
-        run: git archive --format=zip --prefix=job-hunter/ -o job-hunter.zip HEAD
+        run: git archive --format=zip -o job-hunter.zip HEAD  # no top folder: unzipping makes one named job-hunter
       - name: Attach it to the release
         env:
           GH_TOKEN: ${{ github.token }}

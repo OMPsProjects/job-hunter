@@ -101,3 +101,9 @@ exclude = ["jobhunter/vendor/"]
 [[tool.mypy.overrides]]
 module = "jobhunter.vendor.*"
 follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+# numpy 2.3+ ships stubs with Python 3.12-only syntax, which a 3.10 target can't parse
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true

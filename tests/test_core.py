@@ -312,7 +312,7 @@ def test_shape_check_skips_markdown_rules_on_resumes():
 def test_shape_check_runs_on_python_310_without_strenum():
     """job-hunter supports 3.10; StrEnum is 3.11+. The vendored copy falls back."""
     import subprocess
-    code = ("import enum; del enum.StrEnum\n"
+    code = ("import enum; enum.__dict__.pop('StrEnum', None); delattr(enum, 'StrEnum') if hasattr(enum, 'StrEnum') else None\n"
             "from jobhunter import humanize\n"
             "r = humanize.shape_check('It is robust. It is seamless. It is cutting-edge. It is pivotal. It is key.', 'letter')\n"
             "print(len(r['issues']))")

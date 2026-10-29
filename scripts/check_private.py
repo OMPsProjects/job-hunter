@@ -25,6 +25,9 @@ PRIVATE_DIRS = ("results/", "applications/", "candidate/", "resumes/", "logs/")
 PRIVATE_SUFFIXES = (".pdf", ".docx", ".doc", ".odt", ".rtf", ".pages", ".xlsx", ".xls", ".db", ".sqlite", ".pkl")
 # Recorded public job postings may contain recruiters' public contact details.
 CONTENT_EXEMPT = ("tests/fixtures/sources/",)
+# The fictional test person (Jordan Rivera, example.com, 555-01xx) lives here under the real file
+# names so the evals and demo work. Names are allowed; contents are still checked for real data.
+FICTIONAL_DIRS = ("evals/fixtures/",)
 ALLOWED_EMAIL = re.compile(r"@(example\.(com|org|net)|users\.noreply\.github\.com|anthropic\.com)$|^noreply@", re.I)
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+\w")
 PHONE = re.compile(r"(?<!\d)\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?!\d)")
@@ -40,7 +43,8 @@ def tracked():
 def problems(path: str):
     p = path.replace("\\", "/")
     name = Path(p).name
-    if name in PRIVATE_NAMES or name.startswith(".env") or any(rx.match(name) for rx in PRIVATE_PATTERNS):
+    fictional = p.startswith(FICTIONAL_DIRS)
+    if not fictional and (name in PRIVATE_NAMES or name.startswith(".env") or any(rx.match(name) for rx in PRIVATE_PATTERNS)):
         yield "private file (it belongs in .gitignore, not the repo)"
         return
     if any(p.startswith(d) or f"/{d}" in p for d in PRIVATE_DIRS):

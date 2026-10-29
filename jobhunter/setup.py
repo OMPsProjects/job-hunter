@@ -70,6 +70,8 @@ QUESTIONS = [
     ("locations", "Cities you'd work in, best first, separated by ';' (e.g. 'Chicago, IL; New York, NY')", "cities", ""),
     ("remote", "Open to remote jobs? (y/n)", "bool", "y"),
     ("remote_only", "Only remote jobs, none in an office? (y/n)", "bool", "n"),
+    ("linkedin", "Also search LinkedIn? Its terms forbid automated searching and it may limit your account (y/n)",
+     "bool", "n"),
     ("remote_like_top_city", "Should remote jobs rank as high as your first city? (y/n)", "bool", "y"),
     ("pay_floor", "Lowest base pay you'd consider, per year (e.g. 85k, or Enter to skip)", "money", ""),
     ("pay_target", "Pay you're aiming for, per year (e.g. 110k, or Enter to skip)", "money", ""),
@@ -363,7 +365,8 @@ def build_profile(a: dict) -> dict:  # noqa: C901
         "search": {"locations": a.get("locations") or [], "include_remote": bool(a.get("remote")),
                    **({"remote_only": True} if a.get("remote_only") else {}),
                    # two weeks: a first search over one week of postings is thin in most fields
-                   "results_per_search": 25, "hours_old": 336, "sites": ["indeed"], "pause_seconds": 2},
+                   "results_per_search": 25, "hours_old": 336,
+                   "sites": ["indeed", "linkedin"] if a.get("linkedin") else ["indeed"], "pause_seconds": 2},
         "regions": regions,
         "region_order": order,
         "keep_unspecified_locations": True,
@@ -461,6 +464,7 @@ def current_answers(repo: Path) -> dict:
         "pivot_titles": p.tracks.get("pivot", []), "levels": cand.get("target_levels") or [],
         "years_experience": cand.get("years_experience"), "skills": skill_list or list(p.skills),
         "locations": p.locations, "remote": p.include_remote, "remote_only": p.remote_only,
+        "linkedin": "linkedin" in p.sites,
         "remote_like_top_city": bool(keys and p.remote_rank_as == keys[0]),
         "pay_floor": p.pay_floor, "pay_target": p.pay_target,
         "avoid_companies": p.exclude_companies, "avoid_keywords": p.exclude_keywords,
@@ -526,4 +530,16 @@ def run_setup(repo: Path, answers_in=None, ask=input, say=print, force=False):
             ok, msg = add_by_name(t, name)
             say(f"  {msg}")
             added.append((name, ok))
+    packs = [x for x in (answers_in or {}).get("packs") or [] if isinstance(x, str)]
+    if packs:
+        from . import packs as packs_mod
+        from .targets import Targets
+        t = Targets(repo / prof.get("companies_file", "companies.yaml"))
+        for pid in packs:
+            if pid not in packs_mod.all_packs():
+                say(f"  (no list called {pid!r}; skipped)")
+                continue
+            direct, browse = packs_mod.apply(t, pid, skip=a.get("avoid_companies") or [])
+            say(f"  {packs_mod.all_packs()[pid].get('name', pid)}: {direct} career sites added to the daily search, "
+                f"{browse} to the check-by-hand list")
     return {"answers": a, "profile": prof_path, "candidate": cand_path, "companies_added": added}

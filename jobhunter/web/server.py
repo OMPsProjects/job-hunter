@@ -381,7 +381,11 @@ class App:
         from ..targets import Targets
         p = self.profile()
         t = Targets(p.resolve(p.companies_file))
-        return {"companies": t.companies, "boards": t.browse_boards, "tracks": list(p.tracks)}
+        from .. import packs
+        field = (p.raw.get("setup") or {}).get("field") or ""
+        suggested = packs.matching(field, [t for ts in p.tracks.values() for t in ts])
+        return {"companies": t.companies, "boards": t.browse_boards, "tracks": list(p.tracks),
+                "packs": [{**packs.summary(pid), "suggested": pid in suggested} for pid in packs.all_packs()]}
 
     def companies_change(self, q, body):
         from ..targets import Targets, add_by_name, add_from_url
@@ -403,15 +407,26 @@ class App:
                     raise ApiError(400, "Enter the board's URL.")
                 ok, msg = add_from_url(t, url, name=name or None, track=track)
                 return {"ok": ok, "message": msg}
-        raise ApiError(400, "action must be add-company, add-board or remove")
+            if action == "add-pack":
+                from .. import packs
+                pid = str(body.get("pack") or "")
+                if pid not in packs.all_packs():
+                    raise ApiError(400, "No list by that name.")
+                direct, browse = packs.apply(t, pid, skip=p.exclude_companies)
+                return {"ok": True, "message": f"Added {direct} career sites to the daily search and {browse} to the "
+                                              f"check-by-hand list."}
+        raise ApiError(400, "action must be add-company, add-board, add-pack or remove")
 
     # -- setup ------------------------------------------------------------------------------
     def setup_info(self, q, body):
         from ..setup import FIELDS, QUESTIONS, current_answers, us_cities
         current = current_answers(self.base)
         resume = self._resume_info(current.get("resume"))
+        from .. import packs
         return {"has_profile": self.profile_path.exists(), "current": current, "resume": resume,
                 "cities": us_cities(), "fields": FIELDS,
+                "packs": [{**packs.summary(pid), "keywords": packs.all_packs()[pid].get("keywords") or []}
+                          for pid in packs.all_packs()],
                 "questions": [{"key": k, "prompt": pr, "kind": kind, "default": d} for k, pr, kind, d in QUESTIONS]}
 
     def _resume_info(self, rel):

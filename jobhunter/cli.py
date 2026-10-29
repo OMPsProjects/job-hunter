@@ -425,6 +425,18 @@ def cmd_companies(p, args):
     if args.action == "remove":
         print("removed" if t.remove(args.name) else f"{args.name} isn't on the list")
         return 0
+    if args.action == "pack":
+        from . import packs
+        if args.name not in packs.all_packs():
+            print("Ready-made lists of employers and recruiters (add one with: job-hunter companies pack <id>):")
+            for pid in packs.all_packs():
+                s = packs.summary(pid)
+                print(f"  {pid:24} {s['name']}: {s['employers']} employers, {s['recruiters']} recruiters and job boards")
+            return 0 if not args.name else 1
+        direct, browse = packs.apply(t, args.name, skip=p.exclude_companies)
+        print(f"{direct} career sites added to the daily search, {browse} added to the check-by-hand list "
+              f"(job-hunter boards list). Companies you skip in your profile were left out.")
+        return 0
     if args.action == "add":
         if not args.name:
             print('companies add needs a name: job-hunter companies add "Acme Bank"')
@@ -892,8 +904,8 @@ def build_parser():
                    help="with --tracker: set closed or removed jobs to skipped")
 
     co = add("companies", help="employers' career sites searched every run")
-    co.add_argument("action", choices=["add", "discover", "list", "remove"])
-    co.add_argument("name", nargs="?", default="", help="company name (add / remove)")
+    co.add_argument("action", choices=["add", "discover", "list", "remove", "pack"])
+    co.add_argument("name", nargs="?", default="", help="company name (add / remove), or a list's id (pack)")
     co.add_argument("--url", help="add: the company's careers page, if you have it")
     co.add_argument("--track", help="which of your tracks these jobs belong to (default: closest title)")
     co.add_argument("--add", action="store_true", help="discover: add what's found to companies.yaml")

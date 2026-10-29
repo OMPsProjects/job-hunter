@@ -581,6 +581,12 @@ async function viewCompanies() {
       h("div", { class: "row" },
         h("button", { class: "btn", onclick: () => { startTask("discover"); location.hash = "#search"; } }, "Show me the list"),
         h("button", { class: "btn quiet", onclick: () => { startTask("discover-add"); location.hash = "#search"; } }, "Find and add them all"))),
+    (data.packs || []).length ? h("div", { class: "section" }, h("h2", {}, "Ready-made lists"),
+      h("p", {}, "Employers and recruiters known to hire for a kind of work. Career sites job-hunter can read join the daily search; the rest go on the check-by-hand list."),
+      h("ul", { class: "list-plain" }, [...data.packs].sort((x, y) => y.suggested - x.suggested).map((pk) => h("li", { class: "row" },
+        h("span", {}, h("strong", {}, pk.name), ` (${pk.employers} employers, ${pk.recruiters} recruiters and job boards)`,
+          pk.suggested ? h("span", { class: "small muted" }, " Matches your search.") : null),
+        h("button", { class: "btn", onclick: () => change({ action: "add-pack", pack: pk.id }) }, "Add them"))))) : null,
     h("div", { class: "section" }, h("h2", {}, "Add a company"),
       h("form", { class: "stack", onsubmit: (e) => { e.preventDefault(); change({ action: "add-company", name: name.value, url: url.value, track: track.value }); } },
         h("div", {}, h("label", { class: "field", for: "cname" }, "Company name"), name),
@@ -633,7 +639,8 @@ const SETUP_LABELS = {
   levels: "Levels", years_experience: "Years of experience", skills: "Skills", locations: "Cities", remote: "Remote",
   remote_only: "Remote only", remote_like_top_city: "Remote ranks with your first city", pay_floor: "Lowest pay",
   pay_target: "Target pay", avoid_companies: "Companies to skip", avoid_keywords: "Words that rule a job out",
-  target_companies: "Companies you'd like", discover_companies: "Find more companies",
+  target_companies: "Companies you'd like", discover_companies: "Find more companies", linkedin: "LinkedIn",
+  packs: "Ready-made lists",
 };
 const LEVEL_TEXT = { intern: "Intern", entry: "Entry level", mid: "Mid level", senior: "Senior", manager: "Manager",
   director: "Director", vp: "Vice president", executive: "Executive" };
@@ -646,6 +653,7 @@ async function viewSetup() {
   if (!st.loaded) {
     const info = await api("/api/setup");
     Object.assign(st, { loaded: true, hasProfile: info.has_profile, cities: info.cities || [], fields: info.fields || [],
+      packs: info.packs || [],
       resume: info.resume || null, answers: info.has_profile ? { ...(info.current || {}) } : {}, page: 0 });
     if (!info.has_profile && st.resume && !st.resume.error) applyResume(st, st.resume);
   }
@@ -861,6 +869,9 @@ function setupWherePage(st) {
       a.remote = v !== "no"; a.remote_only = v === "only"; drawCities();
     }),
     cityBox,
+    h("div", { class: "field" }, h("label", { class: "check" }, h("input", { type: "checkbox", checked: !!a.linkedin,
+      onchange: (e) => { a.linkedin = e.target.checked; } }), "Also search LinkedIn"),
+      h("span", { class: "hint" }, "Many office and finance jobs are only posted there. LinkedIn's terms forbid automated searching, and it may limit your account if it notices.")),
   ], { onNext: async (err) => {
     if (!a.remote_only && !a.locations.length && !a.remote) { err.textContent = "Add a city, or choose remote jobs."; return false; }
     return true;
@@ -912,11 +923,30 @@ function setupFiltersPage(st) {
     avoidBox,
     chipField({ id: "q-avoid-words", label: "Words that rule a job out (optional)", values: a.avoid_keywords || (a.avoid_keywords = []),
       onChange: (v) => { a.avoid_keywords = v; }, hint: "Like a kind of role you won't do: commission, night shift." }),
+    packsBox(st),
     chipField({ id: "q-targets", label: "Companies you'd like to work for (optional)", values: a.target_companies || (a.target_companies = []),
       onChange: (v) => { a.target_companies = v; }, hint: "Their career sites get searched every run." }),
     h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.discover_companies !== false,
       onchange: (e) => { a.discover_companies = e.target.checked; } }), "After the first search, find more companies hiring for these jobs"),
   ]);
+}
+
+// Ready-made lists of employers and recruiters for the kind of work, matched on field and titles
+function packsBox(st) {
+  const a = st.answers;
+  const packs = st.packs || [];
+  if (!packs.length) return null;
+  const text = [a.field || "", ...(a.titles || []), ...(a.adjacent_titles || [])].join(" ").toLowerCase();
+  const matches = (pk) => (pk.keywords || []).some((k) => new RegExp(`\\b${k.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
+  if (a.packs === undefined) a.packs = packs.filter(matches).map((pk) => pk.id);
+  const shown = [...packs].sort((x, y) => matches(y) - matches(x));
+  return h("fieldset", { class: "field" }, h("legend", { class: "field-label" }, "Ready-made lists"),
+    h("span", { class: "hint" }, "Employers and recruiters known to hire for this kind of work. Their career sites get searched every run."),
+    h("div", { class: "stack" }, shown.map((pk) => h("label", { class: "check" },
+      h("input", { type: "checkbox", checked: a.packs.includes(pk.id), onchange: (e) => {
+        a.packs = e.target.checked ? [...new Set([...a.packs, pk.id])] : a.packs.filter((x) => x !== pk.id);
+      } }), `${pk.name}: ${pk.employers} employers, ${pk.recruiters} recruiters and job boards`,
+      matches(pk) ? h("span", { class: "small muted" }, " (matches your search)") : null))));
 }
 
 function answerText(k, v) {
@@ -934,7 +964,9 @@ function setupReviewPage(st) {
     [0, "resume", st.resume ? (st.resume.original_name || st.resume.file) : "None"],
     [1, "field"], [1, "titles"], [1, "adjacent_titles"], [1, "pivot_titles"], [1, "levels"], [1, "years_experience"],
     [2, "remote", a.remote_only ? "Remote only" : a.remote ? "My cities and remote" : "Only my cities"], [2, "locations"],
+    [2, "linkedin", a.linkedin ? "Yes" : "No"],
     [3, "pay_floor"], [3, "pay_target"], [3, "skills"], [3, "avoid_companies"], [3, "avoid_keywords"], [3, "target_companies"],
+    [3, "packs", (a.packs || []).map((id) => ((st.packs || []).find((pk) => pk.id === id) || { name: id }).name).join(", ") || "None"],
   ];
   const errorP = h("p", { class: "error-text", role: "alert" });
   const submit = async (force) => {

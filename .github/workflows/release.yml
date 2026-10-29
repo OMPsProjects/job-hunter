@@ -1,35 +1,37 @@
 name: Release
-# Pushing a version tag (v1.3.0) publishes a GitHub release with job-hunter.zip (the program, in
-# a folder named job-hunter), so this link always downloads the newest version:
+# Publishing a release on GitHub (Releases > Draft a new release, tag v1.3.0) attaches
+# job-hunter.zip (the program, in a folder named job-hunter), so this link always downloads the
+# newest version:
 #   https://github.com/OMPsProjects/job-hunter/releases/latest/download/job-hunter.zip
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to (re)build the download for, e.g. v1.3.0"
+        required: true
 
 permissions:
-  contents: write  # to create the release
+  contents: write  # to attach the download to the release
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ env.TAG }}
           persist-credentials: false
       - name: Check the tag matches the version
         run: |
           v="$(python3 -c 'import re; print(re.search(r"\"(.+)\"", open("jobhunter/__init__.py").read()).group(1))')"
-          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but jobhunter/__init__.py says $v"; exit 1; }
+          [ "v$v" = "$TAG" ] || { echo "release tag $TAG but jobhunter/__init__.py says $v"; exit 1; }
       - name: Build the download
         run: git archive --format=zip --prefix=job-hunter/ -o job-hunter.zip HEAD
-      - name: Release notes from the changelog
-        run: |
-          v="${GITHUB_REF_NAME#v}"
-          awk -v v="$v" '/^## /{p = index($0, "## " v " ") == 1; next} p' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "job-hunter $v" > notes.md
-      - name: Publish
+      - name: Attach it to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" job-hunter.zip \
-            --repo "$GITHUB_REPOSITORY" --title "job-hunter ${GITHUB_REF_NAME#v}" --notes-file notes.md
+        run: gh release upload "$TAG" job-hunter.zip --clobber --repo "$GITHUB_REPOSITORY"

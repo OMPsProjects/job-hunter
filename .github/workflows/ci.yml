@@ -20,6 +20,9 @@ jobs:
           - os: macos-latest
             python: "3.12"
     runs-on: ${{ matrix.os }}
+    # The Mac job is informational: when GitHub has no Mac machine free it gets cancelled,
+    # and that shouldn't mark main as broken. It still runs whenever a machine is available.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

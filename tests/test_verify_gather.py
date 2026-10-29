@@ -120,7 +120,7 @@ def test_check_page(v, monkeypatch):
 @pytest.mark.parametrize("url", ["http://127.0.0.1:8765/api/status", "http://localhost/", "file:///etc/passwd",
                                  "http://10.0.0.1/", "http://192.168.1.1/admin", "http://169.254.169.254/latest/",
                                  "http://[::1]/", "http://2130706433/", "http://0x7f000001/", "ftp://8.8.8.8/",
-                                 "https://user:pw@8.8.8.8/", "javascript:alert(1)", ""])
+                                 "https://user:pw@example.com/", "javascript:alert(1)", ""])
 def test_posting_links_to_private_addresses_are_never_fetched(url):
     from jobhunter.common import public_url
     assert public_url(url) is False

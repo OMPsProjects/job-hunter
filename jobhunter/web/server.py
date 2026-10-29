@@ -20,6 +20,7 @@ import os
 import re
 import secrets
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -555,6 +556,17 @@ class App:
         }
 
 
+class _Server(ThreadingHTTPServer):
+    """On Windows, Python's default (SO_REUSEADDR) lets a second program bind the same port and
+    share its traffic. Ask for the port exclusively there, so a squatter is detected, not joined."""
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self):
+        if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def make_handler(app: App):
     routes = app.routes()
     static_files = {p.relative_to(STATIC).as_posix(): p for p in STATIC.rglob("*") if p.is_file()}
@@ -707,7 +719,7 @@ def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready
     """Run until Ctrl+C. `ready(server, app)` is called once listening (tests use it)."""
     app = App(profile_path, port)
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
+        server = _Server(("127.0.0.1", port), make_handler(app))
     except OSError as e:
         if _already_running(port, app.base):  # double-clicked Start twice: just show the one that's open
             print(f"job-hunter is already running at http://127.0.0.1:{port}/ ; opening it.", flush=True)
@@ -715,7 +727,7 @@ def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready
                 _open(app.base / LAUNCHER)
             return 0
         try:  # another program has the port: use a free one instead
-            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+            server = _Server(("127.0.0.1", 0), make_handler(app))
         except OSError:
             print(f"Can't open port {port} ({e.strerror}). Start job-hunter with --port {port + 1}.", file=sys.stderr)
             return 1

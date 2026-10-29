@@ -42,7 +42,8 @@ def test_ats_url_exact_and_closed(v):
 def test_board_by_discovery(v, monkeypatch):
     monkeypatch.setattr(verify, "discover", lambda name: {"ats": "greenhouse", "slug": "acme", "confirmed": True})
     hit = v.verify_one({"title": "Senior Credit Analyst", "company": "Acme Corp", "job_url": "https://www.linkedin.com/jobs/view/1"})
-    assert hit["verified"] == "verified_open" and hit["employer_url"].endswith("1234567")
+    # a title match on the company's board is evidence, not proof that this posting is the one
+    assert hit["verified"] == "similar_title_open" and hit["employer_url"].endswith("1234567")
     miss = v.verify_one({"title": "Chief Llama Officer", "company": "Acme Corp", "job_url": "https://www.linkedin.com/jobs/view/2"})
     assert miss["verified"] == "not_on_employer_site"
 

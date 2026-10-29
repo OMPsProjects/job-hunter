@@ -12,7 +12,8 @@ except ImportError:  # pragma: no cover
     sys.exit("pip install pyyaml")
 
 REMOTE, UNSPECIFIED_KEY, OTHER = "remote", "unspecified", "other"
-ATS_TYPES = {"greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable", "recruitee"}
+ATS_TYPES = {"greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable", "recruitee", "oracle",
+             "successfactors"}
 
 # Boards scraped through python-jobspy. Only Indeed is on by default:
 #   linkedin       works, but LinkedIn's terms forbid automated access and it rate-limits and may

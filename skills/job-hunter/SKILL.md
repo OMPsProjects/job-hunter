@@ -65,8 +65,10 @@ resumes · `companies.yaml` company and board list · `results/` search output a
    If `gaps` says a deadline is close ("closes Nov 3"), put it in the shortlist line.
 3. **Confirm the shortlist is real.** Every shortlisted job must be confirmed on the employer's
    own site. For each one whose `verified` is not `verified_open`:
-   - find the employer's careers page (WebSearch "<company> careers <title>"), open it, and look
-     for the same title and location. Read pages; don't sign in to anything.
+   - `similar_title_open` means the employer has an open role with a close title, not that this
+     posting is open: open `employer_url` and check the title, location and level match.
+   - otherwise find the employer's careers page (WebSearch "<company> careers <title>"), open it,
+     and look for the same title and location. Read pages; don't sign in to anything.
    - found and open: keep it, and record the employer URL in the shortlist. If that careers site
      is a system the script can read, offer to add it: `jh boards add <careers url> --name "<Company>"`.
    - not found, or marked closed/filled: drop it and list it under Skipped as "not on employer site".

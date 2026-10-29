@@ -26,7 +26,7 @@ from .logs import log
 from .profile import OTHER, REMOTE, UNSPECIFIED_KEY
 from .scoring import count
 
-VERIFY_MULT = {"verified_open": 1.0, "employer_page_live": 0.97}
+VERIFY_MULT = {"verified_open": 1.0, "employer_page_live": 0.97, "similar_title_open": 0.92}
 EXCLUDE_STATUSES = {"closed": "closed on employer site", "not_on_employer_site": "not on employer's job board"}
 NEUTRAL = 50.0
 
@@ -299,6 +299,8 @@ def rank(df, p, cand=None, tracker_df=None, wage_cache=None):
         gaps = (["weak resume match"] if gaps_low_fit else []) + sen_notes + ([pay_note] if pay_note else [])
         if row["verified"] in ("unverified", "not_checked"):
             gaps.append("not yet confirmed on employer site")
+        elif row["verified"] == "similar_title_open":
+            gaps.append("employer has a similar title open; confirm it's this job")
         if str(row.get("note") or "") and "snippet" in str(row.get("note")):
             gaps.append("description is a snippet; open the posting")
         deadline_note, closes = deadlines.note(row)

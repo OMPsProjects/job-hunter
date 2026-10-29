@@ -54,3 +54,15 @@ def test_dreamwork(profile, monkeypatch):
     assert rows, "dreamwork returned nothing: the API may be down or its format changed"
     assert all(str(r["job_url"]).startswith("http") for r in rows)
     assert any(len(r["description"]) > 200 for r in rows[:2]), "no description from the detail route"
+
+
+def test_oracle_and_successfactors_boards():
+    """JPMorgan (Oracle Recruiting Cloud) and Scotiabank (SuccessFactors). If either moves
+    system, swap in another employer on it."""
+    jpm = ats.list_postings("oracle", "JPMorgan", "jpmc.fa.oraclecloud.com|CX_1001", with_description=False,
+                            search_text="analyst", max_jobs=25)
+    assert jpm, "oracle returned nothing: the API may have changed"
+    sco = ats.list_postings("successfactors", "Scotiabank", "jobs.scotiabank.com", with_description=False,
+                            search_text="analyst", max_jobs=25)
+    assert sco, "successfactors search page returned nothing: the markup may have changed"
+    assert ats.successfactors_job(sco[0]["job_url"]) == "open"

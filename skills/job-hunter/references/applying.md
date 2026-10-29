@@ -20,7 +20,18 @@ You fill the application; the person reviews it. One application at a time.
   Apply or Indeed Apply. If only a board link exists, find the posting on the employer's
   careers site first.
 
-## 1. Open the posting
+## 1. Re-check, then open the posting
+
+Postings close between the search and the application, so check again right before you start:
+`jh verify --url "<employer_url>" --company "<Company>" --title "<Title>"` (applying to several:
+`jh verify --tracker` checks them all at once).
+
+- `verified_open` or `employer_page_live`: go ahead.
+- `closed` or `not_on_employer_site`: stop, mark it skipped (`track set --status skipped --notes
+  "closed"`; with `--tracker`, add `--mark-closed` to do that for you), and tell the user.
+- `similar_title_open`, `unverified`: the script couldn't tie it to this exact posting. Open the
+  page and check the title, location and level yourself before going on, and tell the user it
+  wasn't confirmed by the script.
 
 Open the employer URL in a new tab. Confirm the title and location match and the page has an
 apply button. If it says closed or filled: stop, mark it skipped (`track set --status skipped

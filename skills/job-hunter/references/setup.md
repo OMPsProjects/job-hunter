@@ -96,7 +96,7 @@ jh boards add https://careers.company.com --name "Company Name"   # if you have 
 ```
 
 `boards add` puts a readable career site (Greenhouse, Lever, Ashby, SmartRecruiters, Workable,
-Recruitee, Workday) into the daily search; anything else goes on the browser-search list that
+Recruitee, Workday, Oracle Recruiting Cloud, SuccessFactors career sites) into the daily search; anything else goes on the browser-search list that
 you check by hand when they ask for a full sweep. Tell them which happened for each.
 
 **Job boards they mention** ("I use SelectLeaders", "there's a nursing board..."): `jh boards add <url>`.

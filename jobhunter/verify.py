@@ -2,13 +2,17 @@
 
 For each job:
   1. If the job (or its direct apply link) is already on an employer ATS, ask that ATS.
+     Workday, Oracle Recruiting Cloud and SuccessFactors career-site postings are looked up by
+     their own id.
   2. Otherwise find the company's ATS (profile override, cache, or by probing likely board
      names on Greenhouse / Lever / Ashby / SmartRecruiters / Recruitee / Workable), pull its
-     open roles, and look for the same title.
+     open roles, and look for the same title (a title match is only "similar_title_open").
   3. If the direct apply link is some other employer page, load it and look for "closed" text.
 
 Statuses (column `verified`):
-  verified_open          the employer's ATS lists it as open
+  verified_open          the employer's system lists this posting as open
+  similar_title_open     the employer's board has an open role with a close title, but nothing
+                         ties it to this posting (it may be a different opening); check by hand
   employer_page_live     the employer's own page loads and shows no "closed" text
   not_on_employer_site   we found the company's job board and this title isn't on it
   closed                 the employer says it's closed / the page is gone
@@ -35,7 +39,8 @@ MISS_CACHE_DAYS = 7
 CLOSED_TEXT = re.compile(
     r"no longer accepting applications|no longer available|position has been filled|job has expired|"
     r"this job is closed|posting has closed|no longer open|job you are looking for (?:is|was) not found|"
-    r"this position is no longer|requisition (?:is )?closed|page not found", re.I)
+    r"this position is no longer|requisition (?:is )?closed|page not found|"
+    r"not accepting (?:any )?(?:further |more |new )?applica", re.I)
 
 # Probe order: cheap, single-request APIs first. Workable is rate-limited, so it goes last.
 PROBE_ORDER = ["greenhouse", "lever", "ashby", "smartrecruiters", "recruitee", "workable"]
@@ -172,11 +177,11 @@ class Verifier:
             return found
 
     def board_postings(self, kind, slug, company, title=""):
-        k = (kind, slug, title if kind == "workday" else "")
+        k = (kind, slug, title if kind in ats.SEARCH_BOARDS else "")
         with self._lock(("board",) + k):
             if k not in self.postings:
                 try:
-                    kw = {"search_text": title} if kind == "workday" else {}
+                    kw = {"search_text": title} if kind in ats.SEARCH_BOARDS else {}
                     self.postings[k] = ats.list_postings(kind, company, slug, with_description=False, **kw)
                 except Exception:
                     self.postings[k] = None
@@ -227,6 +232,33 @@ class Verifier:
             return "closed"
         return "verified_open" if jp.get("canApply", True) else "closed"
 
+    def check_oracle_url(self, url, slug):
+        m = re.search(r"/(?:job|requisitions/preview)/(\d{1,20})(?:[/?#]|$)", str(url))
+        if not m:
+            return None
+        host, site = slug.split("|")
+        try:
+            job = ats.oracle_job(host, site, m.group(1))
+        except HTTPError as e:
+            return "closed" if e.code in (404, 410) else "unverified"
+        except Exception:
+            return "unverified"
+        if not job:
+            return "closed"
+        end = str(job.get("ExternalPostedEndDate") or "")[:10]
+        if end and end < time.strftime("%Y-%m-%d"):
+            return "closed"
+        return "verified_open"
+
+    def check_successfactors_url(self, url):
+        try:
+            state = ats.successfactors_job(url)
+        except urllib.error.HTTPError as e:
+            return "closed" if e.code in (404, 410) else None
+        except Exception:
+            return None
+        return {"open": "verified_open", "closed": "closed"}.get(state or "")
+
     def verify_one(self, row):
         title, company, location = row.get("title"), row.get("company"), row.get("location")
         direct = row.get("job_url_direct") if isinstance(row.get("job_url_direct"), str) else None
@@ -244,6 +276,10 @@ class Verifier:
                 status = self.check_workday_url(url)
                 if status:
                     return {"verified": status, "employer_url": url, "verify_note": "workday posting checked"}
+            elif kind == "oracle":
+                status = self.check_oracle_url(url, slug)
+                if status:
+                    return {"verified": status, "employer_url": url, "verify_note": "oracle posting checked"}
             elif kind in ats.FETCHERS:
                 rows = self.board_postings(kind, slug, company)
                 if rows is not None:
@@ -258,12 +294,18 @@ class Verifier:
                                 "verify_note": f"{kind}/{slug} lists {len(rows)} jobs but not this one"}
                     hit, _ = self.match(rows, title, location)
                     if hit:
-                        return {"verified": "verified_open", "employer_url": hit["job_url"],
-                                "verify_note": f"title matched on {kind}/{slug}", "req_id": hit.get("req_id")}
+                        return {"verified": "similar_title_open", "employer_url": hit["job_url"],
+                                "verify_note": f"similar title open on {kind}/{slug}", "req_id": hit.get("req_id")}
                     return {"verified": "unverified", "employer_url": url,
                             "verify_note": f"on {kind}/{slug} but couldn't confirm it's still open"}
             elif kind == "icims":
                 return {"verified": self.check_page(url), "employer_url": url, "verify_note": "icims page checked"}
+        for url in [direct, row.get("job_url")]:
+            if isinstance(url, str) and not ats.ats_from_url(url)[0] \
+                    and ats.SF_JOB_PATH.match(urllib.parse.urlsplit(url).path or ""):
+                status = self.check_successfactors_url(url)
+                if status:
+                    return {"verified": status, "employer_url": url, "verify_note": "successfactors posting checked"}
 
         # 2. find the company's own board and look for the title
         if company and str(company).lower() not in ("nan", "none", ""):
@@ -272,8 +314,8 @@ class Verifier:
                 rows = self.board_postings(board["ats"], board["slug"], company, title)
                 hit, sim = self.match(rows, title, location)
                 if hit:
-                    return {"verified": "verified_open", "employer_url": hit["job_url"],
-                            "verify_note": f"matched on {board['ats']}/{board['slug']} ({sim:.2f})",
+                    return {"verified": "similar_title_open", "employer_url": hit["job_url"],
+                            "verify_note": f"similar title open on {board['ats']}/{board['slug']} ({sim:.2f})",
                             "req_id": hit.get("req_id")}
                 if rows and board.get("confirmed"):  # a real, non-empty board that's definitely theirs
                     return {"verified": "not_on_employer_site", "employer_url": None,

@@ -144,7 +144,7 @@ about 24,000 companies' careers sites (downloaded to a cache folder and refreshe
 `job-hunter data status`), then guesses the board name.
 
 `boards add` puts a career site the script can read (Greenhouse, Lever, Ashby, SmartRecruiters,
-Workable, Recruitee, Workday) straight into the daily search. Anything else goes on a
+Workable, Recruitee, Workday, Oracle Recruiting Cloud, SuccessFactors career sites) straight into the daily search. Anything else goes on a
 browser-search list that the Claude skill checks for you on request.
 
 ## Where jobs come from
@@ -159,7 +159,7 @@ browser-search list that the Claude skill checks for you on request.
 | Arbeitnow | no | no | mostly Europe |
 | Dreamwork | no | **no** | about 2 million postings gathered from employers' career sites. Turn on with `dreamwork: true` under `sources:`. Sends your search titles and cities (nothing else: no resume, no account) to dreamworkhq.com. Links go to the employer's own posting when Dreamwork has it. Guest access returns 25 roles per search, and descriptions are fetched for the 40 newest |
 | Adzuna, USAJobs, Jooble | free key | when key set | put keys in `.env`: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `USAJOBS_API_KEY`, `USAJOBS_EMAIL`, `JOOBLE_API_KEY` |
-| Employer career sites | no | your list | Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Recruitee, Workday |
+| Employer career sites | no | your list | Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Recruitee, Workday, Oracle Recruiting Cloud, SuccessFactors |
 
 ### Duplicates
 
@@ -173,11 +173,24 @@ cities is shown once, as the copy in your higher-priority city.
 
 ## How a job gets confirmed
 
-For the top matches, the script asks the employer's own system whether the posting is open: the
-apply link's ATS if it has one, otherwise the company's board found by name, otherwise the
-employer's apply page itself. Results: `verified_open`, `employer_page_live`, `unverified`,
-`not_on_employer_site` or `closed`. The last two are dropped. Unverified jobs rank lower, and the
-skill checks the shortlist's unverified jobs by hand.
+For the top matches (`verify.top_n`, default 150), the script asks the employer's own system
+whether the posting is open: the apply link's ATS if it has one (Greenhouse, Lever, Ashby,
+SmartRecruiters, Workable, Recruitee and Workday by posting id; Oracle Recruiting Cloud and
+SuccessFactors career sites by posting id too), otherwise the company's board found by name,
+otherwise the employer's apply page itself. Results:
+
+| Status | Means |
+|---|---|
+| `verified_open` | the employer's system lists this exact posting as open |
+| `similar_title_open` | the employer has an open role with a close title, but nothing ties it to this posting; it may be a different opening |
+| `employer_page_live` | the employer's own page loads and doesn't say closed |
+| `unverified` / `not_checked` | couldn't check / below the top matches |
+| `not_on_employer_site`, `closed` | dropped |
+
+Everything but `verified_open` ranks a little lower, and the skill checks those by hand before
+they go on the shortlist. Right before applying, `job-hunter verify --tracker` re-checks every
+tracked job you haven't submitted yet (`--mark-closed` sets the gone ones to skipped). Taleo and
+sites behind a bot check can't be read and stay unverified.
 
 ## How ranking works
 

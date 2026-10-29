@@ -115,11 +115,11 @@ def run_feeds(p) -> list:
     for c in p.target_companies:
         try:
             one_call = c["ats"] in ONE_CALL_ATS  # these return descriptions with the listing
-            if c["ats"] == "workday":
-                # big Workday sites list thousands of jobs: use their search, once per title
+            if c["ats"] in ats.SEARCH_BOARDS:
+                # big Workday / Oracle / SuccessFactors sites list thousands of jobs: search once per title
                 seen_urls, postings = set(), []
                 for _, title in p.all_titles():
-                    for r in ats.list_postings("workday", c.get("name") or c["slug"], c["slug"],
+                    for r in ats.list_postings(c["ats"], c.get("name") or c["slug"], c["slug"],
                                                with_description=False, search_text=title, max_jobs=60):
                         if r["job_url"] not in seen_urls:
                             seen_urls.add(r["job_url"])
@@ -135,10 +135,10 @@ def run_feeds(p) -> list:
             if track:
                 r["track"], r["query"] = c.get("track") or track, q
                 keep.append(r)
-        if keep and c["ats"] == "workday":
+        if keep and c["ats"] in ats.SEARCH_BOARDS:
             for r in keep:  # one search per kept posting, with its description
                 try:
-                    hits = ats.list_postings("workday", c.get("name") or c["slug"], c["slug"], with_description=True,
+                    hits = ats.list_postings(c["ats"], c.get("name") or c["slug"], c["slug"], with_description=True,
                                              search_text=r["title"], include=re.escape(r["title"].lower()), max_jobs=20)
                     r["description"] = next((h["description"] for h in hits if h["job_url"] == r["job_url"]),
                                             hits[0]["description"] if hits else "")

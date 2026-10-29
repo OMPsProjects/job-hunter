@@ -19,6 +19,15 @@
   under another link or spelling, and a job seen yesterday on Indeed isn't "new" today because
   Dreamwork listed it. A title gone for over 14 days that comes back is still new, flagged as a
   re-post. Excluded companies match any spelling too.
+- **Postings checked by id on Oracle and SuccessFactors.** Oracle Recruiting Cloud (used by many
+  banks, JPMorgan among them) and SuccessFactors career sites are now checked posting by posting,
+  and can be added with `boards add` to the daily search. Before, their jobs could only be
+  "page loads" or unverified.
+- **"Similar title" is no longer "confirmed".** When the only evidence is an open role with a close
+  title on the employer's board, the status is `similar_title_open`, ranked a little lower and
+  checked by hand, instead of `verified_open`.
+- **Re-check before applying:** `job-hunter verify --tracker` re-checks every tracked job not yet
+  submitted (`--mark-closed` marks closed ones skipped), and the apply steps run a check first.
 - **CI:** Mac tests run weekly and on demand in their own workflow instead of on every push, so a
   run GitHub can't find a Mac machine for no longer marks main as failed.
 

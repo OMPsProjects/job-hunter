@@ -28,11 +28,13 @@ const SOURCE_TEXT = {
   zip_recruiter: "ZipRecruiter", remotive: "Remotive", himalayas: "Himalayas", remoteok: "RemoteOK", themuse: "The Muse",
   arbeitnow: "Arbeitnow", adzuna: "Adzuna", usajobs: "USAJobs", jooble: "Jooble", dreamwork: "Dreamwork", company_feeds: "Employers' career sites",
   greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable",
-  recruitee: "Recruitee", workday: "Workday", unknown: "Not recorded",
+  recruitee: "Recruitee", workday: "Workday", oracle: "Oracle", successfactors: "SuccessFactors",
+  unknown: "Not recorded",
 };
 const nameOf = (k) => SOURCE_TEXT[k] || k;
 const VERIFIED_TEXT = {
   verified_open: "Open on the employer's site", employer_page_live: "Employer page is live",
+  similar_title_open: "A similar title is open on the employer's site",
   unverified: "Not confirmed yet", not_checked: "Not checked", closed: "Closed", not_on_employer_site: "Not on the employer's site",
 };
 
@@ -313,6 +315,7 @@ function jobRow(j) {
   const flags = [];
   if (j.excluded_reason) flags.push(h("span", { class: "flag" }, j.excluded_reason));
   if (["verified_open", "employer_page_live"].includes(j.verified)) flags.push(h("span", { class: "flag ok" }, "Confirmed open"));
+  else if (j.verified === "similar_title_open") flags.push(h("span", { class: "flag" }, "Similar title open: check it's this job"));
   if (j.apply_by) flags.push(h("span", { class: "flag" }, `Apply by ${day(j.apply_by)}`));
   if (j.integrity_note) flags.push(h("span", { class: "flag" }, "Check posting"));
   if (j.repost_note) flags.push(h("span", { class: "flag" }, "Re-listed"));

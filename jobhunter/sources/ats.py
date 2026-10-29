@@ -195,8 +195,149 @@ def workday(company, slug, include=None, exclude=None, with_description=True, se
     return rows
 
 
+# ----------------------------- Oracle Recruiting Cloud ------------------------
+# Big employers (JPMorgan and many other banks) use Oracle's candidate site at
+# <tenant>.fa.<region>.oraclecloud.com/hcmUI/CandidateExperience/en/sites/<site>/job/<id>.
+# Its public REST API answers without a login.
+
+_ORACLE_HOST = re.compile(r"[a-z0-9-]{1,63}\.fa(?:\.[a-z0-9-]{1,30}){0,3}\.oraclecloud\.com")
+_ORACLE_SITE = re.compile(r"[A-Za-z0-9_]{1,40}")
+
+
+def _oracle_api(host, resource, finder, extra=""):
+    # the finder's ; , " = are part of Oracle's syntax and must reach the server unescaped
+    f = urllib.parse.quote(finder, safe=';,="')
+    return http_json(f"https://{host}/hcmRestApi/resources/latest/{resource}?onlyData=true{extra}&finder={f}")
+
+
+def oracle_job(host, site, job_id):
+    """The posting's details, or None when Oracle no longer serves it (closed or removed)."""
+    if not (_ORACLE_HOST.fullmatch(host) and _ORACLE_SITE.fullmatch(site) and re.fullmatch(r"\d{1,20}", str(job_id))):
+        raise ValueError("not an Oracle posting")
+    data = _oracle_api(host, "recruitingCEJobRequisitionDetails", f'ById;Id="{job_id}",siteNumber={site}', "&expand=all")
+    items = (data or {}).get("items") or []
+    return items[0] if items else None
+
+
+def oracle(company, slug, include=None, exclude=None, with_description=True, search_text="", max_jobs=200):
+    """slug = 'host|site', e.g. 'jpmc.fa.oraclecloud.com|CX_1001'. Searches by keyword (big
+    employers list thousands of roles)."""
+    host, site = slug.split("|")
+    kw = re.sub(r'["\\;,]', " ", str(search_text or "")).strip()[:100]
+    rows, offset = [], 0
+    while offset < max_jobs:
+        finder = f"findReqs;siteNumber={site},limit=25,offset={offset},sortBy=POSTING_DATES_DESC"
+        if kw:
+            finder += f',keyword="{kw}"'
+        data = _oracle_api(host, "recruitingCEJobRequisitions", finder, "&expand=requisitionList")
+        item = ((data or {}).get("items") or [{}])[0]
+        reqs = item.get("requisitionList") or []
+        for j in reqs:
+            if not _keep(j.get("Title"), include, exclude) or not re.fullmatch(r"\d{1,20}", str(j.get("Id"))):
+                continue
+            desc = j.get("ShortDescriptionStr") or ""
+            if with_description:
+                try:
+                    d = oracle_job(host, site, j["Id"]) or {}
+                    desc = "\n\n".join(str(d.get(k) or "") for k in ("ExternalDescriptionStr", "ExternalResponsibilitiesStr",
+                                                                    "ExternalQualificationsStr")) or desc
+                except Exception:
+                    pass
+                time.sleep(0.3)
+            rows.append(_row(title=j.get("Title"), company=company, location=j.get("PrimaryLocation", ""),
+                             is_remote="remote" in str(j.get("WorkplaceType") or j.get("PrimaryLocation") or "").lower(),
+                             job_url=f"https://{host}/hcmUI/CandidateExperience/en/sites/{site}/job/{j['Id']}",
+                             date_posted=str(j.get("PostedDate") or "")[:10], description=html_to_text(desc),
+                             site="oracle", req_id=str(j["Id"])))
+        offset += 25
+        if len(reqs) < 25 or offset >= int(item.get("TotalJobsCount") or 0):
+            break
+        time.sleep(0.3)
+    return rows
+
+
+# ----------------------------- SAP SuccessFactors -----------------------------
+# Career Site Builder sites (jobs.<employer>.com/job/<City-Title>/<id>/) are server-rendered
+# pages on the employer's own domain. There's no public API, so the search page is read; the
+# host is the board id. Sites behind a bot check (some are) can't be read and stay unverified.
+
+SF_JOB_PATH = re.compile(r"^/job/[^/]+/(\d{6,12})/?$")
+_SF_MARK = re.compile(r"rmkcdn\.successfactors\.com|jobs2web|j2w\.|career site builder", re.I)
+_SF_ROW = re.compile(r'(?s)<tr class="data-row[^"]*"[^>]*>.*?(?=<tr class="data-row|</tbody>|$)')
+
+
+def _sf_get(url):
+    from ..common import open_public, read_capped
+    with open_public(url, headers={"Accept": "text/html"}, timeout=20) as r:
+        return r.geturl(), read_capped(r, 1_500_000).decode("utf-8", "ignore")
+
+
+def is_successfactors_page(html) -> bool:
+    return bool(_SF_MARK.search(html or ""))
+
+
+_SF_CLOSED = re.compile(r"not accepting (?:any )?(?:further |more |new )?applica|no longer (?:accepting|available)|"
+                        r"position has been filled|job (?:has )?expired|requisition (?:is )?closed", re.I)
+
+
+def successfactors_job(url):
+    """'open', 'closed' or None (not a SuccessFactors page / couldn't tell). A removed posting
+    sends you to the site's error or search page; a closed one often stays at its address with
+    "not accepting any further applicants" and no description."""
+    final, html = _sf_get(url)
+    if not is_successfactors_page(html):
+        return None
+    path = urllib.parse.urlsplit(final).path
+    if "/errorpage" in path or path.rstrip("/") in ("/search", "") or not SF_JOB_PATH.match(path):
+        return "closed"
+    from ..common import strip_blocks
+    visible = re.sub(r"(?s)<[^>]+>", " ", strip_blocks(html))
+    if _SF_CLOSED.search(visible):
+        return "closed"
+    return "open" if 'class="jobdescription"' in html else None
+
+
+def successfactors(company, slug, include=None, exclude=None, with_description=True, search_text="", max_jobs=200):
+    """slug = the career site's host, e.g. 'jobs.scotiabank.com'."""
+    rows, seen, start = [], set(), 0
+    while start < max_jobs:
+        _, html = _sf_get(f"https://{slug}/search/?{qs({'q': search_text or None, 'startrow': start})}")
+        found = 0
+        for block in _SF_ROW.findall(html):
+            m = re.search(r'<a(?=[^>]*class="jobTitle-link")[^>]*href="(/job/[^"]+)"[^>]*>([^<]+)</a>', block)
+            if not m or not SF_JOB_PATH.match(m.group(1)) or m.group(1) in seen:
+                continue
+            seen.add(m.group(1))
+            found += 1
+            title = html_to_text(m.group(2))
+            if not _keep(title, include, exclude):
+                continue
+            loc = re.search(r'class="jobLocation"[^>]*>\s*([^<]{1,120})', block)
+            url = f"https://{slug}{m.group(1)}"
+            desc = ""
+            if with_description:
+                try:
+                    _, page = _sf_get(url)
+                    d = re.search(r'(?s)<span class="jobdescription">(.*?)</span>\s*</div>', page)
+                    desc = html_to_text(d.group(1)) if d else ""
+                except Exception:
+                    pass
+                time.sleep(0.3)
+            rows.append(_row(title=title, company=company, location=(loc.group(1).strip() if loc else ""),
+                             job_url=url, description=desc, site="successfactors",
+                             req_id=SF_JOB_PATH.match(m.group(1)).group(1)))
+        if found < 25:
+            break
+        start += 25
+        time.sleep(0.5)
+    return rows
+
+
 FETCHERS = {"greenhouse": greenhouse, "lever": lever, "ashby": ashby, "smartrecruiters": smartrecruiters,
-            "workable": workable, "recruitee": recruitee, "workday": workday}
+            "workable": workable, "recruitee": recruitee, "workday": workday, "oracle": oracle,
+            "successfactors": successfactors}
+# Boards too big to list whole: searched once per title instead.
+SEARCH_BOARDS = {"workday", "oracle", "successfactors"}
 
 
 # What a board id may look like. A slug becomes part of a URL (for Recruitee and Workday, part of
@@ -217,6 +358,13 @@ def valid_slug(ats, slug) -> bool:
                     and _SLUG.fullmatch(site))
     if ats in ("recruitee", "icims"):
         return bool(_HOST_LABEL.fullmatch(slug))
+    if ats == "oracle":
+        host, _, site = slug.partition("|")
+        return bool(_ORACLE_HOST.fullmatch(host) and _ORACLE_SITE.fullmatch(site))
+    if ats == "successfactors":  # a public host name; open_public re-checks where it points
+        labels = slug.split(".")
+        return (2 <= len(labels) <= 6 and all(_HOST_LABEL.fullmatch(x) for x in labels)
+                and not labels[-1].isdigit() and len(slug) <= 200)
     return bool(_SLUG.fullmatch(slug)) and ".." not in slug
 
 
@@ -237,6 +385,8 @@ ATS_URL_PATTERNS = [
     ("recruitee", re.compile(r"^https?://([^./?#@:]+)\.recruitee\.com(?:[/:?#]|$)")),
     ("workday", re.compile(r"^https?://([^./?#@:]+\.wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([^/?#]+)")),
     ("icims", re.compile(r"^https?://([^./?#@:]+)\.icims\.com(?:[/:?#]|$)")),
+    ("oracle", re.compile(r"^https://([a-z0-9-]+\.fa(?:\.[a-z0-9-]+){0,3}\.oraclecloud\.com)/hcmUI/CandidateExperience/"
+                          r"[a-z]{2}(?:-[A-Za-z]{2})?/sites/([A-Za-z0-9_]+)(?:[/?#]|$)")),
 ]
 
 
@@ -257,9 +407,14 @@ def posting_key(url):
     if m:
         return f"greenhouse:{m.group(1)}"
     kind, slug = ats_from_url(u)
+    parts = urllib.parse.urlsplit(u)
     if not kind:
-        return None
-    path = urllib.parse.urlsplit(u).path.rstrip("/")
+        m = SF_JOB_PATH.match(parts.path)  # Career Site Builder shape: the id is unique on its host
+        return f"successfactors:{(parts.hostname or '').lower()}:{m.group(1)}" if m and parts.hostname else None
+    path = parts.path.rstrip("/")
+    if kind == "oracle":
+        m = re.search(r"/(?:job|requisitions/preview)/(\d{1,20})$", path)
+        return f"oracle:{slug.split('|')[0]}:{m.group(1)}" if m else None
     if kind == "greenhouse":
         m = re.search(r"/jobs/(\d{5,})", path) or re.search(r"[?&]token=(\d{5,})", u)
         return f"greenhouse:{m.group(1)}" if m else None
@@ -290,6 +445,8 @@ def ats_from_url(url):
             if ats == "workday":
                 host, site = m.group(1), m.group(2)
                 slug = f"{host}|{host.split('.')[0]}|{site}"
+            elif ats == "oracle":
+                slug = f"{m.group(1)}|{m.group(2)}"
             else:
                 slug = m.group(1)
             return (ats, slug) if valid_slug(ats, slug) else (None, None)

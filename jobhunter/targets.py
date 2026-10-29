@@ -103,10 +103,20 @@ class Targets:
 # ----------------------------- resolving a URL or name ------------------------
 
 def resolve_url(url):
-    """(ats, slug) when the URL is a careers site on a readable ATS, else (None, None)."""
+    """(ats, slug) when the URL is a careers site on a readable ATS, else (None, None).
+    SuccessFactors career sites live on the employer's own domain, so those are recognized by
+    loading the page."""
     kind, slug = ats.ats_from_url(url)
     if kind in ats.FETCHERS:
         return kind, slug
+    if not kind:
+        try:
+            final, html = ats._sf_get(url)
+        except Exception:
+            return None, None
+        host = (urllib.parse.urlsplit(final).hostname or "").lower()
+        if ats.is_successfactors_page(html) and ats.valid_slug("successfactors", host):
+            return "successfactors", host
     return None, None
 
 

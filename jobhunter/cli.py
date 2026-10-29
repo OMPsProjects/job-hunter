@@ -361,15 +361,48 @@ def llm_rerank(out, p):
     write_csv_atomic(_cols(df, OUT_COLS + ["llm_fit", "llm_note"]), out / "ranked.csv")
 
 
+OPEN_STATUSES = ("verified_open", "employer_page_live")
+GONE_STATUSES = ("closed", "not_on_employer_site")
+PRE_SUBMIT = ("shortlisted", "tailored", "needs_account", "ready_for_review")
+
+
 def cmd_verify(p, args):
+    """Exit 0 when every posting checked is confirmed open, 2 otherwise (closed, gone, or only a
+    similar title / not confirmable: look at the page by hand)."""
     from .verify import Verifier
     out = out_dir_for(p, args)
     v = Verifier(p, out / "ats_cache.json")
-    res = v.verify_one({"title": args.title, "company": args.company, "location": args.location,
-                        "job_url": args.url, "job_url_direct": args.url})
+    if not args.tracker:
+        if not (args.url and args.company and args.title):
+            log.error("verify needs --url, --company and --title (or --tracker)")
+            return 1
+        res = v.verify_one({"title": args.title, "company": args.company, "location": args.location,
+                            "job_url": args.url, "job_url_direct": args.url})
+        v.save()
+        print(json.dumps(res, indent=1))
+        return 0 if res["verified"] in OPEN_STATUSES else 2
+
+    path = p.resolve(p.tracker_file)
+    df = tracker.load(path)
+    todo = df[df["status"].isin(PRE_SUBMIT)] if len(df) else df
+    if not len(todo):
+        print("No tracked jobs waiting to be applied to.")
+        return 0
+    worst = 0
+    for _, r in todo.iterrows():
+        link = r["employer_url"] if isinstance(r["employer_url"], str) and r["employer_url"] else r["job_url"]
+        res = v.verify_one({"title": r["title"], "company": r["company"], "location": r.get("location"),
+                            "job_url": link, "job_url_direct": link})
+        st = res["verified"]
+        mark = "open" if st in OPEN_STATUSES else ("GONE" if st in GONE_STATUSES else "check by hand")
+        print(f"{mark:14} {r['company']} | {r['title']} | {st}: {res.get('verify_note', '')}")
+        if st not in OPEN_STATUSES:
+            worst = 2
+        if st in GONE_STATUSES and args.mark_closed:
+            note = f"{st.replace('_', ' ')} (checked {dt.date.today().isoformat()})"
+            tracker.upsert(path, "skipped", r["company"], r["title"], notes=note, job_url=r["job_url"])
     v.save()
-    print(json.dumps(res, indent=1))
-    return 0 if res["verified"] in ("verified_open", "employer_page_live") else 2
+    return worst
 
 
 # ----------------------------- companies / boards ---------------------------
@@ -848,11 +881,15 @@ def build_parser():
     add("rank", help="re-rank the last run")
     hl = add("health", help="run history and broken-looking sources")
     hl.add_argument("--runs", type=int, default=10)
-    v = add("verify", help="check one posting on the employer's site")
-    v.add_argument("--url", required=True)
-    v.add_argument("--company", required=True)
-    v.add_argument("--title", required=True)
+    v = add("verify", help="check one posting (or every job you're about to apply to) on the employer's site")
+    v.add_argument("--url")
+    v.add_argument("--company")
+    v.add_argument("--title")
     v.add_argument("--location", default="")
+    v.add_argument("--tracker", action="store_true",
+                   help="re-check every tracked job not yet submitted (run right before applying)")
+    v.add_argument("--mark-closed", action="store_true",
+                   help="with --tracker: set closed or removed jobs to skipped")
 
     co = add("companies", help="employers' career sites searched every run")
     co.add_argument("action", choices=["add", "discover", "list", "remove"])

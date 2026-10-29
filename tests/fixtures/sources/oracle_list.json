@@ -1,0 +1,36 @@
+{
+ "items": [
+  {
+   "TotalJobsCount": 3,
+   "requisitionList": [
+    {
+     "Id": "210804172",
+     "Title": "Business Relationship Manager Senior",
+     "PostedDate": "2026-10-29",
+     "PostingEndDate": null,
+     "ShortDescriptionStr": "Join the team providing financial solutions to over 3 million small businesses nationwide at one of the world\u2019s most innovative banks. ",
+     "PrimaryLocation": "Seattle, WA, United States",
+     "WorkplaceType": ""
+    },
+    {
+     "Id": "210804316",
+     "Title": "Auto - Booking and Funding Specialist I - Plano, TX",
+     "PostedDate": "2026-10-29",
+     "PostingEndDate": null,
+     "ShortDescriptionStr": "Review auto finance contracts and support dealers by resolving funding issues to ensure accurate, compliant booking.",
+     "PrimaryLocation": "Plano, TX, United States",
+     "WorkplaceType": ""
+    },
+    {
+     "Id": "210803777",
+     "Title": "Credit Card Support Specialist IV",
+     "PostedDate": "2026-10-28",
+     "PostingEndDate": null,
+     "ShortDescriptionStr": "Analyze financial statements and spread key data from borrower documents to support credit and lending decisions.",
+     "PrimaryLocation": "Metro Manila, National Capital Region, Philippines",
+     "WorkplaceType": ""
+    }
+   ]
+  }
+ ]
+}

@@ -73,7 +73,11 @@ def read_resume_text(path: Path) -> str:
                 parts.append(" | ".join(c.text for c in row.cells))
         return "\n".join(parts)
     if ext in (".txt", ".md", ".markdown", ".text"):
-        return path.read_text(encoding="utf-8", errors="ignore")
+        raw = path.read_bytes()
+        try:
+            return raw.decode("utf-8-sig")
+        except UnicodeDecodeError:  # saved by Windows Notepad / Word as "ANSI": dashes and bullets are cp1252
+            return raw.decode("cp1252", errors="replace")
     sys.exit(f"Unsupported resume type {ext}: use PDF, DOCX, TXT or MD.")
 
 

@@ -84,7 +84,10 @@ def test_remote_only_profile_and_search(monkeypatch):
 
 
 def test_setup_keeps_resume_titles_for_ranking(tmp_path):
-    (tmp_path / "r.txt").write_text(CRE)
+    (tmp_path / "r.txt").write_text(CRE, encoding="utf-8")
+    (tmp_path / "ansi.txt").write_bytes(CRE.encode("cp1252"))  # Notepad's "ANSI" on Windows
+    from jobhunter.candidate import read_resume_text
+    assert parse_resume(read_resume_text(tmp_path / "ansi.txt"))["titles"] == parse_resume(CRE)["titles"]
     setup.run_setup(tmp_path, {"resume": "r.txt", "titles": ["Commercial Real Estate Underwriter"]}, ask=None,
                     say=lambda *_: None)
     import yaml

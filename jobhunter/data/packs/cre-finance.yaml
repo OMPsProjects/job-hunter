@@ -1,0 +1,94 @@
+# Commercial real estate finance: lenders, debt funds, real estate private equity, capital markets,
+# plus recruiters and job boards for those jobs. Career sites with an ats and slug were checked on
+# 2026-10-29 and are read directly every run; the rest go on the check-by-hand list (they use
+# systems job-hunter can't read, or post only on their own pages). Big banks and brokers are
+# searched by your titles, so only matching roles come back.
+# Not here because they post no openings anywhere public: Madison Realty Capital, Ladder Capital
+# and Argentic (they use SelectLeaders and LinkedIn), and retained search firms such as Ferguson
+# Partners, Odyssey, Paragon, Jackson Lucas, Heidrick, Russell Reynolds and Spencer Stuart.
+name: Commercial real estate finance
+keywords: [commercial real estate, real estate finance, real estate lending, real estate debt, real estate credit,
+           real estate private equity, real estate investment, real estate capital markets, repe, cre, multifamily,
+           debt fund, bridge lending, agency lending, cmbs, loan origination, originations, mortgage]
+employers:
+  # private equity, debt funds and credit
+  - {name: Blackstone, ats: workday, slug: "blackstone.wd1|blackstone|Blackstone_Careers"}
+  - {name: Brookfield, ats: workday, slug: "brookfield.wd5|brookfield|brookfield"}
+  - {name: Ares Management, ats: workday, slug: "aresmgmt.wd1|aresmgmt|External"}
+  - {name: Starwood Capital Group, url: "https://jobs.jobvite.com/starwoodcapitalgroup/jobs"}
+  - {name: KKR, ats: greenhouse, slug: stage}
+  - {name: Apollo Global Management, ats: workday, slug: "athene.wd5|athene|Apollo_Careers"}
+  - {name: Carlyle, ats: workday, slug: "carlyle.wd1|carlyle|Carlyle"}
+  - {name: TPG, ats: greenhouse, slug: tpgcareers}
+  - {name: Sixth Street, ats: workday, slug: "sixthstreet.wd1|sixthstreet|sixthstreetcareers"}
+  - {name: Fortress Investment Group, ats: workday, slug: "fortress.wd503|fortress|Careers"}
+  - {name: Oaktree Capital, ats: workday, slug: "oaktree.wd1|oaktree|Oaktree"}
+  - {name: Cerberus Capital, ats: workday, slug: "cerberus.wd1|cerberus|CerberusCareers"}
+  - {name: ACORE Capital, url: "https://acorecapital.com/positions/"}
+  - {name: MF1 Capital (Berkshire Group board), ats: greenhouse, slug: berkshiregroupllc}
+  - {name: LoanCore Capital, ats: greenhouse, slug: loancore}
+  - {name: PCCP, url: "https://www.paycomonline.net/v4/ats/web.php/portal/0D5F90557A8D3CEC17038DF9B8206DD8/career-page"}
+  - {name: BentallGreenOak (BGO), url: "https://recruiting.ultipro.ca/BEN5000BENTK/JobBoard/6f7f3dc0-d599-4e78-9ee5-fa1703eb67ac/"}
+  - {name: Rialto Capital, ats: workday, slug: "rialtocapital.wd1|rialtocapital|Rialto"}
+  - {name: Värde Partners, url: "https://phg.tbe.taleo.net/phg02/ats/careers/v2/jobSearch?org=VARDE&cws=38"}
+  - {name: Kennedy Wilson, url: "https://recruiting2.ultipro.com/KEN1008KWI/JobBoard/41d97ff4-cb1d-404d-b1df-23b470008831/"}
+  - {name: Ellington Management Group, url: "https://phh.tbe.taleo.net/dispatcher/servlet/DispatcherServlet?org=ELLINGTONMGMTGRP&act=redirectCwsV2&cws=37"}
+  - {name: Benefit Street Partners (Franklin Templeton board), url: "https://careers.franklintempleton.com"}
+  - {name: Pretium, ats: workday, slug: "pretiumenterpriseservices.wd1|pretiumenterpriseservices|Pretium-Enterprise-Services"}
+  - {name: Pretium Partners (Greenhouse), ats: greenhouse, slug: pretiumpartnersllc}
+  - {name: Bridge Investment Group, ats: workday, slug: "bridgeigp.wd1|bridgeigp|BIGC"}
+  - {name: Harbor Group International, url: "https://jobs.dayforcehcm.com/en-US/hgm/CANDIDATEPORTAL"}
+  - {name: Cortland, ats: greenhouse, slug: cortland}
+  - {name: Origin Investments, url: "https://origininvestments.com/careers/"}
+  - {name: Pennybacker Capital, url: "https://www.pennybackercap.com/careers"}
+  - {name: PGIM Real Estate, ats: workday, slug: "pru.wd5|pru|PGIM_Careers"}
+  - {name: Nuveen (TIAA board), ats: workday, slug: "tiaa.wd1|tiaa|Search"}
+  - {name: MetLife Investment Management, url: "https://www.metlifecareers.com/en_US/ml/SearchJobs"}
+  - {name: CPP Investments, ats: workday, slug: "cppib.wd10|cppib|cppinvestments"}
+  - {name: Hunt Companies, url: "https://recruiting2.ultipro.com/HUN1008HCBB/JobBoard/a501bac4-eef8-405b-b29d-022e29a6b358"}
+  # lenders and mortgage REITs
+  - {name: Arbor Realty Trust, ats: greenhouse, slug: arborrealtytrust}
+  - {name: Starwood Property Trust, url: "https://recruiting.ultipro.com/LNR1000LNRP/JobBoard/4e2f2abb-e9c6-4a49-b864-60ef14a33c39/"}
+  - {name: Granite Point Mortgage Trust, url: "https://recruiting.paylocity.com/recruiting/jobs/All/2c41597c-3be3-43da-8e1c-480fe8db695c/GRANITE-POINT-MORTGAGE-TRUST-INC"}
+  - {name: Ready Capital, ats: workday, slug: "readycapital.wd501|readycapital|ReadyCapital"}
+  - {name: Greystone, ats: workday, slug: "greyco.wd108|greyco|GTI"}
+  - {name: Walker & Dunlop, ats: workday, slug: "walkerdunlop.wd1|walkerdunlop|WD"}
+  - {name: Berkadia, ats: workday, slug: "berkadia.wd1|berkadia|Berkadia"}
+  - {name: Lument (ORIX board), ats: workday, slug: "orix.wd5|orix|lument"}
+  - {name: Dwight Capital, url: "https://careers.dwightcompany.com/dc-opportunities"}
+  - {name: Truist (incl. Grandbridge), ats: workday, slug: "truist.wd1|truist|Careers"}
+  - {name: Northmarq, ats: greenhouse, slug: northmarq}
+  - {name: Freddie Mac, ats: workday, slug: "freddiemac.wd5|freddiemac|External"}
+  - {name: Fannie Mae, ats: workday, slug: "fanniemae.wd1|fanniemae|FannieMaeCareers"}
+  - {name: JPMorgan Chase, ats: oracle, slug: "jpmc.fa.oraclecloud.com|CX_1001"}
+  - {name: Goldman Sachs, url: "https://higher.gs.com/results"}
+  - {name: Morgan Stanley (incl. Mesa West), ats: workday, slug: "ms.wd5|ms|External"}
+  - {name: Bank of America, ats: workday, slug: "ghr.wd1|ghr|Lateral-US"}
+  - {name: Citi, ats: workday, slug: "citi.wd5|citi|2"}
+  - {name: Capital One, ats: workday, slug: "capitalone.wd12|capitalone|Capital_One"}
+  - {name: PNC, ats: workday, slug: "pnc.wd5|pnc|External"}
+  # capital markets, brokerage and advisory
+  - {name: Eastdil Secured, url: "https://eastdilsecured.bamboohr.com/careers"}
+  - {name: Newmark, ats: oracle, slug: "hdow.fa.us6.oraclecloud.com|CX_1001"}
+  - {name: CBRE, url: "https://careers.cbre.com/en_US/careers/SearchJobs"}
+  - {name: JLL, ats: workday, slug: "jll.wd1|jll|jllcareers"}
+  - {name: Cushman & Wakefield, ats: workday, slug: "cw.wd1|cw|External"}
+  - {name: Lazard, ats: oracle, slug: "icbpjb.fa.ocs.oraclecloud.com|LazardProfessionalCareers"}
+recruiters:
+  - {name: SelectLeaders, url: "https://www.selectleaders.com/jobs/", focus: "CRE job board: acquisitions, capital markets, debt, asset management; also NAIOP, ULI, NMHC, Nareit and CCIM career centers"}
+  - {name: CREFC Career Center, url: "https://careercenter.crefc.org/jobs", focus: "CRE finance job board: lending, CMBS, credit risk, servicing"}
+  - {name: A.CRE Job Board, url: "https://www.adventuresincre.com/acrejobs/", focus: "CRE job board: acquisitions, debt origination, asset management"}
+  - {name: CREW Network Career Center, url: "https://careers.crewnetwork.org/jobs/", focus: "CRE job board: capital markets, asset management, finance"}
+  - {name: LIHTC Leaders, url: "https://lihtcleaders.com/jobs", focus: "affordable housing finance job board: underwriting, lending, syndication"}
+  - {name: Novogradac affordable housing jobs, url: "https://www.novoco.com/resource-centers/affordable-housing-tax-credits/jobs", focus: "LIHTC and affordable housing finance job board"}
+  - {name: MBA Career Center, url: "https://jobs.mba.org/jobs", focus: "mortgage banking job board; mostly residential, filter for commercial"}
+  - {name: RETS Associates, url: "https://retsusa.com/career-openings/", focus: "recruiter: CRE acquisitions, asset management, investment, finance, multifamily"}
+  - {name: Selby Jennings (Real Estate), url: "https://www.selbyjennings.com/en-us/jobs/f-real-estate", focus: "recruiter: RE private equity, debt capital markets, asset management, RE credit"}
+  - {name: KM Partners, url: "https://www.kmcompanies.com/job-seekers-career-page", focus: "recruiter: affordable and senior housing, LIHTC, underwriting, asset management"}
+  - {name: Korn Ferry (Real Estate), url: "https://jobs.candidate.kornferry.com/jobs", focus: "recruiter: professional search; filter for Financial: Real Estate"}
+  - {name: Southcoast Partners, url: "https://southcoastpartners.com/jobs/", focus: "recruiter: commercial and multifamily real estate"}
+  - {name: Joseph Chris Partners, url: "https://jobs.josephchris.com/", focus: "recruiter: real estate development, multifamily, investment"}
+  - {name: Marcus & Associates, url: "https://marcusjobs.com/active-searches/", focus: "recruiter: accounting, finance and real estate (NYC)"}
+  - {name: Macdonald & Company, url: "https://www.macdonaldandcompany.com/jobs/", focus: "recruiter: global real estate investment and finance; mostly outside the US"}
+  - {name: Dartmouth Partners, url: "https://www.dartmouthpartners.com/jobs?sector=real-assets", focus: "recruiter: real estate equity and debt funds; mostly UK"}
+  - {name: Hintel USA, url: "https://www.hintelusa.com/jobs/", focus: "recruiter: real estate acquisitions, development, asset management"}

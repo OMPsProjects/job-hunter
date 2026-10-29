@@ -345,3 +345,15 @@ def test_setup_reads_the_resume_and_offers_lists(ui):
     # a new resume of another type replaces the old one
     status, up2 = ui.call("/api/setup/resume", raw=b"x", headers={"X-Filename": "resume.md"})
     assert status == 200 and not (ui.folder / "candidate" / "base_resume.txt").exists()
+
+
+def test_ready_made_lists(ui):
+    status, info = ui.call("/api/setup")
+    assert any(pk["id"] == "cre-finance" and pk["readable"] > 30 for pk in info["packs"])
+    status, data = ui.call("/api/companies")
+    assert any(pk["id"] == "cre-finance" for pk in data["packs"])
+    status, r = ui.call("/api/companies", {"action": "add-pack", "pack": "cre-finance"})
+    assert status == 200 and "career sites" in r["message"]
+    _, data = ui.call("/api/companies")
+    assert any(c["name"] == "Walker & Dunlop" for c in data["companies"]) and data["boards"]
+    assert ui.call("/api/companies", {"action": "add-pack", "pack": "nope"})[0] == 400

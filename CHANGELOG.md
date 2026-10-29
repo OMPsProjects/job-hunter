@@ -12,6 +12,14 @@
 - **Remote only** is now a choice.
 - **Skills from your resume** are shown as already included; you add the rest.
 - Going back in setup no longer looks like the resume was lost.
+- **Ready-made lists of employers and recruiters.** The first one, commercial real estate
+  finance, has 60 employers (lenders, debt funds, real estate private equity, banks, brokers) and
+  17 recruiters and job boards. The 41 whose career sites job-hunter can read (Workday,
+  Greenhouse, Oracle) are searched every run; the rest go on the check-by-hand list. Setup offers
+  it when your field or titles match; existing searches can add it on the Companies page or with
+  `job-hunter companies pack cre-finance`. Companies you skip are left out.
+- **LinkedIn in setup:** an "Also search LinkedIn" choice, with the warning that LinkedIn's terms
+  forbid automated searching and it may limit your account.
 - New searches cover two weeks of postings instead of one.
 - Related-title and skill suggestions only come from a confident match, so a commercial real
   estate underwriter isn't offered insurance-agent titles.

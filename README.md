@@ -179,6 +179,14 @@ then one with a description, then one with pay. The same matching decides "alrea
 and "new since last run". One trade-off: the same title at the same company in two of your
 cities is shown once, as the copy in your higher-priority city.
 
+### Ready-made lists
+
+`job-hunter companies pack` lists them; `job-hunter companies pack cre-finance` adds one (also on
+the Companies page, and offered in setup when your field matches). Each is a YAML file in
+`jobhunter/data/packs/`: a field's employers and the recruiters and job boards that fill its jobs.
+Lists for other fields are welcome as pull requests; check each career site with `job-hunter
+boards add <url>` first.
+
 ## How a job gets confirmed
 
 For the top matches (`verify.top_n`, default 150), the script asks the employer's own system

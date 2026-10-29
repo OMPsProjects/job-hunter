@@ -8,6 +8,17 @@
   search titles and cities are sent. Each role links to the employer's own posting when Dreamwork
   has it, so verification checks the real page. Titles far from yours are dropped, estimated pay
   is ignored, and a city Dreamwork can't place is skipped rather than searched worldwide.
+- **Duplicates are caught across spellings and links.** One job is now: the same link; the same
+  employer posting id (Greenhouse job id, Workday req number, Lever/Ashby id, and so on), however
+  the company is spelled; or the same company and title, with company names compared ignoring
+  spaces, "Inc"/"LLC" and a leading "at" ("CVS Health" = "Cvshealth", "At CBIZ" = "CBIZ"). The
+  copy kept is the one from the employer's site, then your top region, then one with a
+  description, then one with pay. Before, the copy from the employer's site could lose to an
+  aggregator's copy of the same link.
+- **Already applied and new-today use the same matching.** A job you applied to doesn't come back
+  under another link or spelling, and a job seen yesterday on Indeed isn't "new" today because
+  Dreamwork listed it. A title gone for over 14 days that comes back is still new, flagged as a
+  re-post. Excluded companies match any spelling too.
 - **CI:** one Mac job instead of four, and it no longer marks a run failed when GitHub has no Mac
   machine free.
 

@@ -219,6 +219,15 @@ def company_key(name) -> str:
     return re.sub(r"\s+", " ", _COMPANY_SUFFIX.sub(" ", norm(name))).strip()
 
 
+def company_id(name) -> str:
+    """company_key with the spaces taken out and a leading "at" dropped, so the same employer
+    matches however a source spells it: 'CVS Health' / 'Cvshealth' -> 'cvshealth', 'At CBIZ' /
+    'CBIZ' -> 'cbiz'. "at" is kept when too little would be left ('AT&T' -> 'att', not 't')."""
+    k = company_key(name)
+    rest = k[3:].replace(" ", "") if k.startswith("at ") else ""
+    return rest if len(rest) >= 3 else k.replace(" ", "")
+
+
 def title_similarity(a, b) -> float:
     """0..1. Token-set style: order-insensitive, tolerant of extra words like 'Sr.' or a req code."""
     ta, tb = set(norm(a).split()), set(norm(b).split())

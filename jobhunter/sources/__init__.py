@@ -8,7 +8,7 @@ import time
 
 import pandas as pd
 
-from ..common import JOB_COLUMNS, US_STATE_CODES, cell_safe
+from ..common import JOB_COLUMNS, US_STATE_CODES, cell_safe, company_id, norm
 from ..logs import log
 from ..profile import OTHER, REMOTE, UNSPECIFIED_KEY
 from . import apis, ats
@@ -163,6 +163,15 @@ def run_feeds(p) -> list:
     return frames
 
 
+def _posting_key(row):
+    """First employer posting id among the row's links (employer page, direct apply link, listing)."""
+    for col in ("employer_url", "job_url_direct", "job_url"):
+        key = ats.posting_key(row.get(col)) if isinstance(row.get(col), str) else None
+        if key:
+            return key
+    return None
+
+
 def _rows(frames) -> int:
     return int(sum(len(f) for f in frames if f is not None))
 
@@ -210,7 +219,7 @@ def gather(p, only=None):
     for c in JOB_COLUMNS:
         if c not in out:
             out[c] = None
-    out = out[out["job_url"].notna()].drop_duplicates(subset="job_url")
+    out = out[out["job_url"].notna()]
     for c in ("title", "company", "location"):
         out[c] = out[c].map(cell_safe)
 
@@ -225,17 +234,28 @@ def gather(p, only=None):
     out = out[~out["_region"].isin(drop)]
     log.info(f"\nLocation filter dropped {before - len(out)} of {before} jobs outside your regions.")
 
-    # The same role posted on several boards / cities: keep the copy that's on the employer's site
-    # if there is one, then your highest-priority region, then the one that shows pay.
-    out["_key"] = (out["company"].astype(str).str.lower().str.strip() + "|"
-                   + out["title"].astype(str).str.lower().str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip())
+    # The same role from several sources: keep the copy that's on the employer's site if there is
+    # one, then your highest-priority region, then one with a description, then one that shows pay.
+    # One job is: the same link; or the same employer posting id (however the company is spelled);
+    # or the same company and title (company spelling-proofed: "CVS Health" = "Cvshealth").
+    out["_key"] = (out["company"].map(company_id) + "|" + out["title"].map(norm))
+    out["_pid"] = [_posting_key(r) for r in out.to_dict("records")]
     out["_has_salary"] = out["max_amount"].notna()
+    out["_has_desc"] = out["description"].fillna("").astype(str).str.len() > 200
     verified = out["verified"] if "verified" in out else pd.Series(index=out.index, dtype=object)
     out["_direct"] = verified.eq("verified_open")
     out["_rank"] = out["_region"].map(p.region_order)
-    out = (out.sort_values(["_direct", "_rank", "_has_salary"], ascending=[False, True, False])
-              .drop_duplicates(subset="_key"))
-    log.info(f"Duplicate filter left {len(out)} unique roles.")
+    out = out.sort_values(["_direct", "_rank", "_has_desc", "_has_salary"], ascending=[False, True, False, False],
+                          kind="stable")
+    n0 = len(out)
+    out = out.drop_duplicates(subset="job_url")
+    n1 = len(out)
+    out = out[out["_pid"].isna() | ~out.duplicated(subset="_pid")]
+    n2 = len(out)
+    out = out.drop_duplicates(subset="_key")
+    log.info(f"Duplicate filter left {len(out)} unique roles (removed {n0 - n1} same link, "
+             f"{n1 - n2} same employer posting, {n2 - len(out)} same company and title).")
     out["region"] = out["_region"]
-    jobs = out.drop(columns=["_region", "_key", "_has_salary", "_direct", "_rank"]).reset_index(drop=True)
+    jobs = out.drop(columns=["_region", "_key", "_pid", "_has_salary", "_has_desc", "_direct", "_rank"]
+                    ).reset_index(drop=True)
     return jobs, stats

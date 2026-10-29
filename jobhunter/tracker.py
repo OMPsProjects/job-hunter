@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .common import cell_safe, company_key, norm
+from .common import cell_safe, company_id, norm
 from .fileio import write_csv_atomic
 
 COLUMNS = ["id", "status", "company", "title", "location", "rank_score", "job_url", "employer_url",
@@ -33,13 +33,18 @@ def save(df, path: Path):
 
 
 def find(df, company=None, title=None, url=None):
-    """Same application = same URL, or (no URL match) same company and exactly the same title."""
+    """Same application = same URL or employer posting id, or (no link match) same company and exactly
+    the same title."""
     if url:
+        from .sources.ats import posting_key
+        pid = posting_key(url)
         for i, r in df.iterrows():
             if url in (r["job_url"], r["employer_url"]):
                 return i
+            if pid and pid in {posting_key(u) for u in (r["job_url"], r["employer_url"]) if isinstance(u, str)}:
+                return i
     for i, r in df.iterrows():
-        if company and title and company_key(r["company"]) == company_key(company) and norm(r["title"]) == norm(title):
+        if company and title and company_id(r["company"]) == company_id(company) and norm(r["title"]) == norm(title):
             return i
     return None
 

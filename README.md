@@ -161,6 +161,16 @@ browser-search list that the Claude skill checks for you on request.
 | Adzuna, USAJobs, Jooble | free key | when key set | put keys in `.env`: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `USAJOBS_API_KEY`, `USAJOBS_EMAIL`, `JOOBLE_API_KEY` |
 | Employer career sites | no | your list | Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Recruitee, Workday |
 
+### Duplicates
+
+The same job often comes from several sources. It's kept once when two rows share a link, the
+employer's posting id (a Greenhouse job id, Workday req number, Lever or Ashby id), or the same
+company and title, with company names compared loosely ("CVS Health" = "Cvshealth", "Stripe,
+Inc." = "Stripe"). The copy kept is the one from the employer's own site, then your top region,
+then one with a description, then one with pay. The same matching decides "already applied"
+and "new since last run". One trade-off: the same title at the same company in two of your
+cities is shown once, as the copy in your higher-priority city.
+
 ## How a job gets confirmed
 
 For the top matches, the script asks the employer's own system whether the posting is open: the

@@ -240,6 +240,46 @@ ATS_URL_PATTERNS = [
 ]
 
 
+_UUID_RX = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
+
+
+def posting_key(url):
+    """The same posting's identity whatever site linked to it, or None when the link isn't an
+    employer ATS posting. Two rows with the same key are one job, even when the sources spell the
+    company differently ('Brown & Brown' / 'Bbinsurance').
+
+    Greenhouse ids and Lever/Ashby UUIDs are unique across all employers; Workday req numbers and
+    other ATS ids only within one employer's board, so the board is part of the key."""
+    u = urllib.parse.unquote(str(url or "")).strip()
+    if not u.startswith(("https://", "http://")):
+        return None
+    m = re.search(r"[?&#]gh_jid=(\d{5,})", u)  # Greenhouse on the employer's own domain
+    if m:
+        return f"greenhouse:{m.group(1)}"
+    kind, slug = ats_from_url(u)
+    if not kind:
+        return None
+    path = urllib.parse.urlsplit(u).path.rstrip("/")
+    if kind == "greenhouse":
+        m = re.search(r"/jobs/(\d{5,})", path) or re.search(r"[?&]token=(\d{5,})", u)
+        return f"greenhouse:{m.group(1)}" if m else None
+    if kind in ("lever", "ashby"):
+        m = _UUID_RX.search(path)
+        return f"{kind}:{m.group(0).lower()}" if m else None
+    if kind == "workday":
+        # .../job/<City>/<Title-Words>_<REQ>  ->  the req id, e.g. R1021400-1 or R26_0000003297-1
+        last = path.rsplit("/", 1)[-1]
+        if "/job/" not in path or "_" not in last:
+            return None
+        tenant = slug.split("|")[0].split(".")[0].lower()
+        return f"workday:{tenant}:{last.split('_', 1)[1].lower()}"
+    if kind == "workable":
+        m = re.search(r"/j/([A-Za-z0-9]{6,})", path)
+        return f"workable:{slug.lower()}:{m.group(1).upper()}" if m else None
+    m = _UUID_RX.search(path) or re.search(r"/(\d{5,})(?:[/-]|$)", path)
+    return f"{kind}:{slug.lower()}:{m.group(1) if m.lastindex else m.group(0).lower()}" if m else None
+
+
 def ats_from_url(url):
     """('greenhouse', 'dealpath') if the URL is on a known ATS, else (None, None).
     Workday returns ('workday', 'host|?|site') - tenant isn't in the public URL, so it's '?'."""

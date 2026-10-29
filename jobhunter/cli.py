@@ -222,8 +222,11 @@ def cmd_search(p, args):
                     log.error(str(e))
                     return 1
                 store.record_sources(run_id, stats)
-                seen = store.seen_urls()
-                fresh = jobs[~jobs["job_url"].isin(seen)] if len(jobs) else jobs
+                is_seen = store.seen_matcher()
+                direct = jobs["job_url_direct"] if "job_url_direct" in jobs else pd.Series(index=jobs.index, dtype=object)
+                old = {u for u, c, t, d in zip(jobs["job_url"], jobs["company"], jobs["title"], direct, strict=True)
+                       if is_seen(u, c, t, d)} if len(jobs) else set()
+                fresh = jobs[~jobs["job_url"].isin(old)] if len(jobs) else jobs
                 reposts = store.repost_notes(zip(fresh["job_url"], fresh["company"], fresh["title"], strict=True)) \
                     if len(fresh) else {}
                 jobs["repost_note"] = jobs["job_url"].map(reposts) if len(jobs) else []
@@ -232,7 +235,7 @@ def cmd_search(p, args):
                 jobs, ranked, excluded = score_verify_rank(jobs, p, args, out)
                 if ranked.empty and excluded.empty:
                     log.info("\nNo jobs cleared min_score this run. Nothing to rank.")
-                new_urls = set(jobs.job_url) - seen if len(jobs) else set()
+                new_urls = set(jobs.job_url) - old if len(jobs) else set()
                 new_ranked = write_outputs(out, jobs, ranked, excluded, new_urls)
                 if len(jobs):
                     store.mark_seen(zip(jobs["job_url"], jobs["company"], jobs["title"], strict=True))

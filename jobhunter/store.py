@@ -80,6 +80,31 @@ class Store:
     def seen_urls(self) -> set:
         return {r[0] for r in self.db.execute("SELECT job_url FROM seen")}
 
+    def seen_matcher(self, recent_days: int = 14):
+        """A function row -> bool: was this job already seen, under any link? Same link, same
+        employer posting id, or the same company and title still listed in the last `recent_days`
+        days (the same job from another source). A title that disappeared longer ago than that
+        stays new, and repost_notes says it's a re-post."""
+        from .common import company_id, norm
+        from .sources.ats import posting_key
+        urls, pids, recent = set(), set(), set()
+        cutoff = (dt.datetime.now() - dt.timedelta(days=recent_days)).isoformat(timespec="seconds")
+        for url, last, comp, title in self.db.execute("SELECT job_url, last_seen, company, title FROM seen"):
+            urls.add(url)
+            pid = posting_key(url)
+            if pid:
+                pids.add(pid)
+            if comp and title and str(last) >= cutoff:
+                recent.add((company_id(comp), norm(title)))
+
+        def seen(job_url, company=None, title=None, *links) -> bool:
+            if job_url in urls:
+                return True
+            if any(k in pids for k in (posting_key(u) for u in (job_url, *links) if isinstance(u, str)) if k):
+                return True
+            return bool(company and title) and (company_id(company), norm(title)) in recent
+        return seen
+
     def mark_seen(self, rows):
         """rows: iterable of (job_url, company, title)."""
         now = _now()
@@ -94,15 +119,15 @@ class Store:
         link at least `min_days` ago: {job_url: note}. A re-listed job can be a hard-to-fill role,
         a refreshed ad for a role that's quietly filled, or a standing 'pipeline' posting, so this
         is shown as a flag, never used to drop a job. rows: iterable of (job_url, company, title)."""
-        from .common import company_key, norm
+        from .common import company_id, norm
         earlier: dict = {}
         for url, first, comp, title in self.db.execute(
                 "SELECT job_url, first_seen, company, title FROM seen WHERE company IS NOT NULL AND title IS NOT NULL"):
-            earlier.setdefault((company_key(comp), norm(title)), []).append((first, url))
+            earlier.setdefault((company_id(comp), norm(title)), []).append((first, url))
         today = dt.datetime.now()
         notes = {}
         for url, comp, title in rows:
-            prior = [(f, u) for f, u in earlier.get((company_key(comp), norm(title)), []) if u != url]
+            prior = [(f, u) for f, u in earlier.get((company_id(comp), norm(title)), []) if u != url]
             old = []
             for first, _ in prior:
                 try:

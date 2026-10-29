@@ -21,7 +21,7 @@ import pandas as pd
 
 from . import deadlines, integrity, occupations, visa, wages
 from .candidate import LEVELS, title_level, years_required
-from .common import annualize, company_key, norm, title_similarity
+from .common import annualize, company_id, company_key, norm, title_similarity
 from .logs import log
 from .profile import OTHER, REMOTE, UNSPECIFIED_KEY
 from .scoring import count
@@ -191,40 +191,49 @@ def freshness_part(row, p):
     return max(0.0, 100 * (1 - age / p.max_age_days))
 
 
+def _ids(urls) -> set:
+    """Links plus their employer posting ids, so a job you applied to is recognized under any link."""
+    from .sources.ats import posting_key
+    links = {u for u in urls if isinstance(u, str) and u}
+    return links | {k for k in map(posting_key, links) if k}
+
+
 def applied_keys(p, tracker_df):
-    """(company_key, normalized title, urls) for jobs already applied to."""
+    """(company id, normalized title, links and posting ids) for jobs already applied to."""
     keys = []
     for s in p.already_applied:
         comp, _, title = s.partition("|")
-        keys.append((company_key(comp), norm(title), set()))
+        keys.append((company_id(comp), norm(title), set()))
     if tracker_df is not None and len(tracker_df):
         done = tracker_df[tracker_df["status"].isin(["submitted", "ready_for_review", "applied", "interviewing",
                                                      "rejected", "offer"])]
         for _, r in done.iterrows():
-            keys.append((company_key(r["company"]), norm(r["title"]),
-                         {u for u in (r.get("job_url"), r.get("employer_url")) if u}))
+            keys.append((company_id(r["company"]), norm(r["title"]),
+                         _ids((r.get("job_url"), r.get("employer_url")))))
     return keys
 
 
 def hard_filter_reason(row, p, applied):
     comp = company_key(row.get("company"))
+    cid = company_id(row.get("company"))
     title = str(row.get("title", "")).lower()
     head = title + " " + str(row.get("description", "")).lower()[:p.desc_window]
-    allowed = any(company_key(a) and company_key(a) in comp for a in p.allow_companies)
+    allowed = any((company_key(a) and company_key(a) in comp) or (company_id(a) and company_id(a) == cid)
+                  for a in p.allow_companies)
     if not allowed:
         for c in p.exclude_companies:
             ck = company_key(c)
-            if ck and (comp == ck or comp.startswith(ck + " ")):
+            if ck and (comp == ck or comp.startswith(ck + " ") or company_id(c) == cid):
                 return f"excluded company ({c})"
     for kw in p.exclude_keywords:
         if count(kw, head):
             return f"excluded keyword '{kw}'"
-    urls = {row.get("job_url"), row.get("employer_url")}
+    urls = _ids((row.get("job_url"), row.get("employer_url"), row.get("job_url_direct")))
     for c, t, done_urls in applied:
         if done_urls & urls:
             return "already applied"
         # same company and the same title, word for word ("Credit Analyst" is not "Senior Credit Analyst")
-        if c and c == comp and (not t or t == norm(row.get("title"))):
+        if c and c == cid and (not t or t == norm(row.get("title"))):
             return "already applied"
     st = row.get("verified")
     if st in EXCLUDE_STATUSES:

@@ -295,7 +295,7 @@ def rank(df, p, cand=None, tracker_df=None, wage_cache=None):
         deadline_note, closes = deadlines.note(row)
         if deadline_note:
             gaps.append(deadline_note)
-        integrity_note = integrity.note(row.get("description"))
+        integrity_note = integrity.note("\n".join(str(row.get(k) or "") for k in ("title", "company", "description")))
         if integrity_note:
             gaps.append(integrity_note)
         repost = row.get("repost_note")

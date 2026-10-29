@@ -7,6 +7,7 @@ agent** (the Agent tool, general-purpose) that hasn't seen the drafting. Give it
 - the posting (`applications/<folder>/job.md`),
 - the draft (`resume.yaml` or `cover_letter.yaml`),
 - the sources: `candidate/resume.txt`, `candidate/career_facts.md`, `candidate.yaml`,
+- `references/humanizer.md` (the humanizer patterns),
 - this rubric (paste the section below).
 
 Don't tell it what you think is good or weak about the draft; let it find that. Tell it that
@@ -25,14 +26,22 @@ each with the exact line and a concrete fix. Check:
    first half, with a specific example? Say which asks are missing or buried.
 3. **Specifics.** Lines that could appear on anyone's resume ("results-driven", "strong
    communicator", "helped improve processes") with no example or result behind them.
-4. **Sounds like a person.** Stock phrases, rule-of-three lists, inflated verbs, "-ing" tails,
-   repeated sentence openings, anything that reads as written by AI.
+4. **Sounds like a person.** Go through the humanizer patterns, strongest first: §1 not-X-but-Y
+   contrasts, §2 closers and fragments, §6 forced triads, §8 dashes, §12 stock AI words, §13
+   inflated significance, §15 "-ing" riders, §16 sales language. Quote each line that has one.
+   Resume bullets may start with a verb and drop "I"; that's a resume convention, not a tell.
 5. **Order and length.** The strongest evidence for this job comes first; nothing irrelevant
    takes space a better line could use; it fits the page target.
 6. **For cover letters:** the first sentence is about this job and this person, not a stock
    opener; under 300 words; no claim the resume doesn't support.
 
-End with a verdict: "ready", "small fixes", or "rework", and the three changes that matter most.
+Then score it 1-10 on each (from the stop-slop skill): **Directness** (states things, or announces
+them?), **Rhythm** (varied, or every sentence the same shape?), **Trust** (respects the reader, or
+over-explains?), **Authenticity** (sounds like this person?), **Density** (anything cuttable?).
+Under 35 of 50 means "rework" whatever else you found.
+
+End with a verdict: "ready", "small fixes", or "rework", the 5 scores, and the three changes that
+matter most.
 Don't rewrite the document yourself.
 
 ## After the review

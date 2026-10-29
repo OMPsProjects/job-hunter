@@ -29,7 +29,10 @@ Use the hiring manager's name only if the posting gives it. Otherwise "Dear Hiri
 
 ## 3. Humanize and check
 
-The rules in `references/humanizer-rules.md` apply, plus the humanizer skill if installed. Then:
+Apply `references/humanizer.md` (bundled; embedded mode) to every paragraph. A letter is prose,
+so all of it applies, including §2 closers, §6 triads, §13 send-offs and §22 chatbot residue
+("I hope to hear from you" is a normal sign-off; "I hope this helps" is not). Then apply
+`references/humanizer-rules.md`, and run:
 
 ```
 jh lint applications/<folder>/cover_letter.yaml
@@ -41,7 +44,9 @@ sources (only the body is fact-checked, not the date or address).
 ## 4. Reviewer pass
 
 A separate agent reviews it with `references/review-rubric.md` (the cover letter items included).
-Apply the fixes that are clearly right and lint again.
+Apply the fixes that are clearly right and lint again. Treat `shape:` warnings like errors in a
+letter: it's prose, so a monotonous rhythm or a tidy list of three is exactly what makes it read as
+generated. A letter over 300 words also gets a 0-100 shape score; aim for 80 or more.
 
 ## 5. Render
 

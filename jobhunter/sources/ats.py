@@ -199,7 +199,30 @@ FETCHERS = {"greenhouse": greenhouse, "lever": lever, "ashby": ashby, "smartrecr
             "workable": workable, "recruitee": recruitee, "workday": workday}
 
 
+# What a board id may look like. A slug becomes part of a URL (for Recruitee and Workday, part of
+# the host name), so anything else - from a posting link, companies.yaml or the downloaded
+# directory - is refused before a request is made.
+_SLUG = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}")
+_HOST_LABEL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
+
+
+def valid_slug(ats, slug) -> bool:
+    slug = str(slug or "")
+    if ats == "workday":
+        parts = slug.split("|")
+        if len(parts) != 3:
+            return False
+        host, tenant, site = parts
+        return bool(re.fullmatch(r"[A-Za-z0-9-]{1,63}\.wd\d{1,3}", host) and re.fullmatch(r"[A-Za-z0-9_-]{1,100}|\?", tenant)
+                    and _SLUG.fullmatch(site))
+    if ats in ("recruitee", "icims"):
+        return bool(_HOST_LABEL.fullmatch(slug))
+    return bool(_SLUG.fullmatch(slug)) and ".." not in slug
+
+
 def list_postings(ats, company, slug, include=None, exclude=None, with_description=True, **kw):
+    if not valid_slug(ats, slug):
+        raise ValueError(f"not a valid {ats} board id: {slug!r}")
     return FETCHERS[ats](company, slug, include=include, exclude=exclude, with_description=with_description, **kw)
 
 
@@ -211,21 +234,23 @@ ATS_URL_PATTERNS = [
     ("ashby", re.compile(r"jobs\.ashbyhq\.com/([^/?#]+)")),
     ("smartrecruiters", re.compile(r"jobs\.smartrecruiters\.com/([^/?#]+)")),
     ("workable", re.compile(r"apply\.workable\.com/([^/?#]+)")),
-    ("recruitee", re.compile(r"https?://([^./]+)\.recruitee\.com")),
-    ("workday", re.compile(r"https?://([^./]+\.wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([^/?#]+)")),
-    ("icims", re.compile(r"https?://([^./]+)\.icims\.com")),
+    ("recruitee", re.compile(r"^https?://([^./?#@:]+)\.recruitee\.com(?:[/:?#]|$)")),
+    ("workday", re.compile(r"^https?://([^./?#@:]+\.wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([^/?#]+)")),
+    ("icims", re.compile(r"^https?://([^./?#@:]+)\.icims\.com(?:[/:?#]|$)")),
 ]
 
 
 def ats_from_url(url):
     """('greenhouse', 'dealpath') if the URL is on a known ATS, else (None, None).
     Workday returns ('workday', 'host|?|site') - tenant isn't in the public URL, so it's '?'."""
-    u = urllib.parse.unquote(str(url or ""))
+    u = urllib.parse.unquote(str(url or "")).strip()
     for ats, rx in ATS_URL_PATTERNS:
         m = rx.search(u)
         if m:
             if ats == "workday":
                 host, site = m.group(1), m.group(2)
-                return ats, f"{host}|{host.split('.')[0]}|{site}"
-            return ats, m.group(1)
+                slug = f"{host}|{host.split('.')[0]}|{site}"
+            else:
+                slug = m.group(1)
+            return (ats, slug) if valid_slug(ats, slug) else (None, None)
     return None, None

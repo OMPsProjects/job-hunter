@@ -39,6 +39,8 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from .fileio import secure
+
 INK = HexColor("#1a1a1a")
 MUTED = HexColor("#555555")
 FONT, BOLD = "Helvetica", "Helvetica-Bold"
@@ -234,6 +236,7 @@ def render(resume_yaml, out_pdf, target_pages=None, sizes=(10.0, 9.5, 9.0, 8.75)
         if not target_pages or pages <= target_pages:
             break
     final_pages = _build(data, chosen, str(out_pdf))
+    secure(Path(out_pdf))
     return {"pages": final_pages, "font_size": chosen, "fits": (not target_pages) or final_pages <= target_pages,
             "readability_issues": readability_issues(out_pdf, resume_pieces(data))}
 
@@ -293,5 +296,6 @@ def render_letter(data, out_pdf, sizes=(10.5, 10.0, 9.5)):
         if build(size, io.BytesIO()) <= 1:
             break
     pages = build(chosen, str(out_pdf))
+    secure(Path(out_pdf))
     return {"pages": pages, "font_size": chosen, "fits": pages <= 1,
             "readability_issues": readability_issues(out_pdf, letter_pieces(data))}

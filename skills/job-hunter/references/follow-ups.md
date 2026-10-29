@@ -13,7 +13,8 @@ For each one they want to follow up on, write a draft to `applications/<folder>/
 - Three or four sentences: the role and when they applied, one specific reason they fit (from
   the tailored resume), a short ask ("Is the role still open, and is there anything else I can
   send?"). No pressure, no apology, no exclamation marks.
-- Follow `references/humanizer-rules.md`; run nothing through lint that isn't a resume or letter.
+- Apply `references/humanizer.md` (embedded mode) and `references/humanizer-rules.md`; run
+  nothing through lint that isn't a resume or letter.
 
 One follow-up per application is plenty. If there's still no answer two weeks later, suggest
 marking it `skipped` and moving on.

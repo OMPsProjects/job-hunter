@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .common import company_key, norm
+from .common import cell_safe, company_key, norm
 from .fileio import write_csv_atomic
 
 COLUMNS = ["id", "status", "company", "title", "location", "rank_score", "job_url", "employer_url",
@@ -57,6 +57,7 @@ def remove_shortlisted(path: Path, job_url=None, employer_url=None, company=None
 def upsert(path: Path, status, company, title, **fields):
     if status not in STATUSES:
         raise ValueError(f"status must be one of {', '.join(STATUSES)}")
+    company, title = cell_safe(company), cell_safe(title)  # may come straight from a posting
     df = load(path)
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     i = find(df, company, title, fields.get("job_url") or fields.get("employer_url"))

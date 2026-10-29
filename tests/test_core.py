@@ -250,3 +250,72 @@ def test_tracker_upsert(tmp_path):
 def test_every_example_yaml_loads():
     for f in list(ROOT.glob("*.example.yaml")) + list((ROOT / "templates").glob("*.yaml")):
         assert yaml.safe_load(f.read_text()) is not None, f
+
+
+@pytest.mark.parametrize("text,needle", [
+    ("It's not just a loan book, it's a portfolio strategy.", "not X but Y"),
+    ("This isn't about titles. It's about results.", "not X but Y"),
+    ("Here's the thing: I close deals.", "here's the thing"),
+    ("Enhanced the credit memo process.", "enhanced"),
+    ("Moving forward, I will lean into data.", "lean into"),
+    ("Ran the desk -- and the team.", "double hyphen"),
+    ("Ran the desk – and the team.", "en dash"),
+    ("Your renowned firm is nestled in the heart of Chicago.", "renowned"),
+    ("I hope this helps. Great question.", "chatbot residue"),
+])
+def test_lint_catches_more_ai_tells(text, needle):
+    assert any(needle in m for lvl, m in humanize.lint_text(text) if lvl == "error"), humanize.lint_text(text)
+
+
+def test_lint_leaves_plain_writing_alone():
+    ok = ("Underwrote 40 bridge loans from 2019–2022, not counting renewals. Ran the credit committee memo "
+          "process and trained two analysts. The deals were not large, but the timelines were short.")
+    assert [m for lvl, m in humanize.lint_text(ok) if lvl == "error"] == []
+
+
+def test_bundled_humanizer_is_present():
+    ref = ROOT / "skills" / "job-hunter" / "references"
+    text = (ref / "humanizer.md").read_text(encoding="utf-8")
+    assert "Humanizer: remove AI writing patterns" in text and (ref / "humanizer-LICENSE.txt").exists()
+    for f in ("tailoring.md", "cover-letters.md", "applying.md", "follow-ups.md", "review-rubric.md"):
+        assert "references/humanizer.md" in (ref / f).read_text(encoding="utf-8"), f
+
+
+# ----------------------------- shape check (vendored slop-guard) -------------
+
+SLOPPY_BULLETS = ["Spearheaded robust credit initiatives, driving efficiency, scalability, and growth",
+                  "Leveraged cutting-edge tools to streamline workflows, ensuring seamless collaboration",
+                  "Fostered a culture of excellence, empowering teams to unlock their full potential",
+                  "Orchestrated transformative strategies, showcasing a commitment to innovation"]
+HUMAN_BULLETS = ["Underwrote 40 bridge and construction loans, $5M to $35M, for the balance sheet",
+                 "Rebuilt the credit memo template in 2024; term sheet to committee now takes about a week less",
+                 "Trained two analysts",
+                 "Sized loans on DSCR and debt yield and wrote the risk section of every memo I presented",
+                 "Cut stale pipeline deals from 60 to 25 by closing out anything without a signed LOI after 90 days"]
+
+
+def test_shape_check_flags_ai_shapes_and_passes_plain_bullets():
+    bad = humanize.shape_check(humanize.resume_prose("", SLOPPY_BULLETS), "resume")
+    good = humanize.shape_check(humanize.resume_prose("", HUMAN_BULLETS), "resume")
+    assert len([m for _, m in bad["issues"] if m.startswith("shape:")]) >= 4
+    assert any("triadic" in m for _, m in bad["issues"])
+    assert good["issues"] == []
+    assert all(level == "warn" for level, _ in bad["issues"])  # advice, never a hard block
+    assert bad["score"] is None  # too short for the 0-100 score to mean anything
+
+
+def test_shape_check_skips_markdown_rules_on_resumes():
+    many = humanize.resume_prose("", HUMAN_BULLETS * 3)
+    assert not any("bullet" in m and "density" in m for _, m in humanize.shape_check(many, "resume")["issues"])
+
+
+def test_shape_check_runs_on_python_310_without_strenum():
+    """job-hunter supports 3.10; StrEnum is 3.11+. The vendored copy falls back."""
+    import subprocess
+    code = ("import enum; del enum.StrEnum\n"
+            "from jobhunter import humanize\n"
+            "r = humanize.shape_check('It is robust. It is seamless. It is cutting-edge. It is pivotal. It is key.', 'letter')\n"
+            "print(len(r['issues']))")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=ROOT, timeout=60)
+    assert out.returncode == 0, out.stderr
+    assert int(out.stdout.strip()) > 0

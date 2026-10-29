@@ -18,11 +18,12 @@ would put a wrong answer on an application.
 import datetime as dt
 import difflib
 import re
+import unicodedata
 from pathlib import Path
 
 import yaml
 
-from .common import norm
+from .common import fold_lookalikes, norm
 from .fileio import write_text_atomic
 
 BLOCK_ID = re.compile(
@@ -40,7 +41,39 @@ BLOCK_EEO = re.compile(
     r"voluntary (self|disclosure)|\beeo\b|equal employment|affirmative action|\bofccp\b|religio|faith|"
     r"marital|married|spouse'?s? name|pregnan|maternity|national origin|citizenship of|caste|criminal|"
     r"arrest|convicted|conviction|felony|union member|political", re.I)
-BLOCK_VALUE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b|\b(?:\d[ -]?){13,19}\b")  # SSN or card-like number
+# The lists above miss rewordings and other languages, and the employer writes the question.
+# These catch the common ones; the rule stays "when in doubt, don't save".
+BLOCK_ID_MORE = re.compile(
+    r"\bss ?#|\bs ?s ?n\b|\bsocial sec|\bsocial insurance|year of birth|birth ?year|\bbirth\b|"
+    r"^\s*(your |current )?age\s*[:?*]?\s*$|\bage (range|group|bracket)\b|\byour age|\bcurrent age|"
+    r"\bd\.? ?l\.? ?(number|no|#)|driving licen|driver licen|"
+    r"identity (card|number|document)|\bid (card|number|no\b|#)|\bidentification (number|no|#)|"
+    r"\bcpf\b|\bdni\b|\bnie\b|\bnif\b|\bcurp\b|\brfc\b|\bpesel\b|\bbsn\b|personnummer|codice fiscale|"
+    r"tax (file|identification|reference) number|\bsort code\b|bank (details|info|information|name and)|"
+    r"direct deposit|"
+    r"fecha de nacimiento|date de naissance|data di nascita|geburtsdatum|\bedad\b|\bâge\b|\bwie alt\b|"
+    r"seguro social|seguridad social|s[ée]curit[ée] sociale|sozialversicherung|steuer ?id|"
+    r"pasaporte|passeport|reisepass|f[üu]hrerschein|permis de conduire|licencia de conducir", re.I)
+BLOCK_EEO_MORE = re.compile(
+    r"disab|handicap|impairment|\bracial|\bracially|ancestry|heritage|\bethni|"
+    r"\bserved\b.*\b(military|armed|army|navy|air force|marines?|coast guard|forces)\b|\bmilitary\b|"
+    r"\bgay\b|lesbian|bisexual|heterosexual|asexual|\btrans\b|non ?binary|intersex|\bsexual|"
+    r"\bmale\b|\bfemale\b|man or (a )?woman|woman or (a )?man|\bnationality|"
+    r"\bsexe\b|\bgenre\b|geschlecht|g[ée]nero|\braza\b|\betnia\b|\bethnie\b|ethnizit|behinderung|"
+    r"discapacidad|minusval|religi[oó]n|confession|orientaci[oó]n|orientation sexuelle|"
+    r"\bestado civil\b|situation familiale|familienstand", re.I)
+BLOCK_VALUE = re.compile(
+    r"\b\d{3}([ -]?)\d{2}\1\d{4}\b"   # SSN, with or without dashes/spaces
+    r"|\b(?:\d[ -]?){13,19}\b")       # card-like number
+BLOCK_IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b")  # case-sensitive on purpose
+
+def _canon(s):
+    """Text as a person reads it: no invisible characters, lookalikes folded, S.S.N. -> SSN."""
+    s = unicodedata.normalize("NFKC", str(s or ""))
+    s = "".join(ch for ch in s if unicodedata.category(ch) not in ("Cf", "Mn", "Cc") or ch in "\n\t")
+    s = fold_lookalikes(s)
+    s = re.sub(r"(?<=\b[A-Za-z])\.(?=[A-Za-z]\b)", "", s)   # S.S.N. -> SSN., D.L. -> DL.
+    return re.sub(r"[_\-]+", " ", s)
 
 MATCH_THRESHOLD = 0.85
 _FILLER = re.compile(r"\b(please|kindly|do you|are you|have you|will you|would you|can you|you|your|the|a|an|"
@@ -70,13 +103,14 @@ _NEGATIONS = {"not", "never", "unwilling", "unable", "unauthorized", "without", 
 
 def blocked(question, answer=""):
     """Reason string if this Q/A must not be saved, else None."""
-    q = re.sub(r"[_\-]+", " ", str(question or ""))
-    if BLOCK_ID.search(q):
+    q = _canon(question)
+    if BLOCK_ID.search(q) or BLOCK_ID_MORE.search(q):
         return "ID or account number, login, code, birth date or age question"
-    if BLOCK_EEO.search(q):
+    if BLOCK_EEO.search(q) or BLOCK_EEO_MORE.search(q):
         return "EEO, self-identification or other protected-information question (answer it yourself each time)"
-    if BLOCK_VALUE.search(str(answer or "")):
-        return "answer looks like an ID or card number"
+    a = _canon(answer).replace(".", " ")
+    if BLOCK_VALUE.search(a) or BLOCK_IBAN.search(a):
+        return "answer looks like an ID, card or bank account number"
     return None
 
 
@@ -131,6 +165,8 @@ class AnswerBank:
             return None
         best, best_s = None, 0.0
         for a in self.answers:
+            if blocked(a.get("question", ""), a.get("answer", "")):
+                continue  # saved by an older version before the check caught this wording: never reuse it
             for q in [a.get("question", "")] + list(a.get("aliases", []) or []):
                 if not compatible(question, q):
                     continue
@@ -165,15 +201,22 @@ class AnswerBank:
         today = dt.date.today().isoformat()
         existing = None
         for a in self.answers:
-            if similarity(question, a.get("question", "")) >= 0.92 or (alias_of and a.get("question") == alias_of):
+            names = [a.get("question", "")] + list(a.get("aliases") or [])
+            # Same rule as match(): a question that adds a negation, country or skill is a different
+            # question, so it gets its own entry instead of overwriting this one.
+            same = any(similarity(question, n) >= 0.92 and compatible(question, n) and compatible(n, question)
+                       for n in names)
+            if same or (alias_of and a.get("question") == alias_of):
                 existing = a
                 break
         if existing:
+            before = existing.get("answer")
             if existing.get("question") != question and question not in (existing.get("aliases") or []):
                 existing.setdefault("aliases", []).append(question)
             existing.update({"answer": answer, "source": source, "updated": today})
             self.save()
-            return True, f"updated: {existing['question']}"
+            changed = f" (was: {before})" if before not in (None, answer) else ""
+            return True, f"updated: {existing['question']}{changed}"
         self.answers.append({"question": question, "answer": answer, "aliases": [], "source": source, "updated": today})
         self.save()
         return True, "added"

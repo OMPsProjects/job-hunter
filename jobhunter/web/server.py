@@ -19,6 +19,7 @@ import mimetypes
 import os
 import re
 import secrets
+import signal
 import subprocess
 import sys
 import threading
@@ -412,14 +413,9 @@ class App:
             raise ApiError(400, f"Upload a PDF, DOCX, TXT or MD file (got {ext or 'no extension'}).")
         if not raw:
             raise ApiError(400, "The file was empty.")
-        folder = self.base / "candidate"
-        folder.mkdir(exist_ok=True)
-        dest = folder / f"base_resume{ext}"
-        tmp = dest.with_suffix(dest.suffix + ".part")
-        tmp.write_bytes(raw)
-        tmp.replace(dest)
-        from ..fileio import secure
-        secure(dest)
+        from ..fileio import write_bytes_atomic
+        dest = self.base / "candidate" / f"base_resume{ext}"
+        write_bytes_atomic(dest, raw)
         return {"path": f"candidate/{dest.name}"}
 
     def setup_run(self, q, body):
@@ -594,15 +590,14 @@ def make_handler(app: App):
             f = static_files.get(rel)
             if f is None:
                 return self._send(404, {"error": "not found"})
-            data = f.read_bytes()
-            if rel == "index.html":
-                data = data.replace(b"__JH_TOKEN__", app.token.encode())
+            data = f.read_bytes()  # no secrets in any static file: the key arrives in the link (see launcher)
             ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
             if ctype.startswith("text/") or ctype in ("application/javascript",):
                 ctype += "; charset=utf-8"
             csp = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; "
-                   "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
-            return self._send(200, data, ctype, {"Content-Security-Policy": csp})
+                   "connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            return self._send(200, data, ctype, {"Content-Security-Policy": csp, "Cross-Origin-Opener-Policy": "same-origin",
+                                                 "Cross-Origin-Resource-Policy": "same-origin"})
 
         def _dispatch(self, method):
             if not self._host_ok():
@@ -613,7 +608,7 @@ def make_handler(app: App):
                     return self._send(405, {"error": "method not allowed"})
                 return self._static(parsed.path)
             if not secrets.compare_digest(self.headers.get("X-JH-Token") or "", app.token):
-                return self._send(403, {"error": "Missing or wrong token. Reload the page."})
+                return self._send(403, {"error": "This page has an old key. Open job-hunter again from its Start file or shortcut."})
             q = urllib.parse.parse_qs(parsed.query)
             try:
                 length = int(self.headers.get("Content-Length") or 0)
@@ -659,13 +654,53 @@ def make_handler(app: App):
     return Handler
 
 
-def _already_running(port):
+LAUNCHER = "open-job-hunter.html"
+
+
+def _launcher_html(url):
+    u = json.dumps(url)
+    return ("<!doctype html><meta charset='utf-8'><title>Opening job-hunter</title>"
+            f"<meta http-equiv='refresh' content='0;url={url}'>"
+            f"<script>location.replace({u})</script>"
+            "<p>Opening job-hunter... If nothing happens, job-hunter has stopped: double-click Start job-hunter.</p>\n")
+
+
+def write_launcher(app):
+    """The page's key goes in a file only this account can read, which redirects the browser to
+    the page with the key after the # (never sent over the network, never in the page). Other
+    accounts on the computer can reach the port but can't get the key."""
+    path = app.base / LAUNCHER
+    write_text_atomic(path, _launcher_html(f"http://127.0.0.1:{app.port}/#k={app.token}"), private=True)
+    return path
+
+
+def _read_launcher(base):
+    try:
+        text = (Path(base) / LAUNCHER).read_text(encoding="utf-8")
+    except OSError:
+        return None, None
+    m = re.search(r"http://127\.0\.0\.1:(\d+)/#k=([A-Za-z0-9_-]+)", text)
+    return (int(m.group(1)), m.group(2)) if m else (None, None)
+
+
+def _already_running(port, base):
+    """True only if the program on `port` is this account's own job-hunter: it has to answer to
+    the key in this account's private launcher file. Anything else on the port is a stranger."""
+    lport, key = _read_launcher(base)
+    if lport != port or not key:
+        return False
     try:
         import urllib.request
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
-            return b'name="jh-token"' in r.read(4096)
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/status", headers={"X-JH-Token": key})
+        with urllib.request.urlopen(req, timeout=2) as r:
+            return r.status == 200
     except Exception:
         return False
+
+
+def _open(path):
+    import webbrowser
+    webbrowser.open(Path(path).resolve().as_uri())
 
 
 def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready=None):
@@ -674,25 +709,33 @@ def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready
     try:
         server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
     except OSError as e:
-        if _already_running(port):  # double-clicked Start twice: just show the one that's open
+        if _already_running(port, app.base):  # double-clicked Start twice: just show the one that's open
             print(f"job-hunter is already running at http://127.0.0.1:{port}/ ; opening it.", flush=True)
             if open_browser:
-                import webbrowser
-                webbrowser.open(f"http://127.0.0.1:{port}/")
+                _open(app.base / LAUNCHER)
             return 0
-        print(f"Can't open port {port} ({e.strerror}). Something else is using it; start job-hunter with "
-              f"--port {port + 1}.", file=sys.stderr)
-        return 1
+        try:  # another program has the port: use a free one instead
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+        except OSError:
+            print(f"Can't open port {port} ({e.strerror}). Start job-hunter with --port {port + 1}.", file=sys.stderr)
+            return 1
+        print(f"Port {port} is taken by another program, so job-hunter is using port "
+              f"{server.server_address[1]} instead.", flush=True)
     app.port = server.server_address[1]
     server.daemon_threads = True
-    url = f"http://127.0.0.1:{app.port}/"
-    print(f"job-hunter is open at {url}  (only this computer can reach it; Ctrl+C to stop)\n"
-          f"Using the files in {app.base}", flush=True)
+    launcher = write_launcher(app)
+    print(f"job-hunter is open at http://127.0.0.1:{app.port}/  (Ctrl+C to stop)\n"
+          f"Using the files in {app.base}\n"
+          f"If your browser didn't open it, open this file: {launcher}", flush=True)
     if open_browser:
-        import webbrowser
-        threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+        threading.Timer(0.5, lambda: _open(launcher)).start()
     if ready:
         ready(server, app)
+
+    def _stop(*_):
+        raise KeyboardInterrupt
+    with contextlib.suppress(ValueError):  # only possible on the main thread
+        signal.signal(signal.SIGTERM, _stop)
     try:
         server.serve_forever(poll_interval=0.25)
     except KeyboardInterrupt:
@@ -700,5 +743,7 @@ def serve(profile_path: Path, port: int = 8765, open_browser: bool = True, ready
     finally:
         app.task.stop()
         server.server_close()
+        if _read_launcher(app.base)[1] == app.token:
+            (app.base / LAUNCHER).unlink(missing_ok=True)
     return 0
 

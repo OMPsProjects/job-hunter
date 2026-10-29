@@ -8,7 +8,7 @@ import time
 
 import pandas as pd
 
-from ..common import JOB_COLUMNS, US_STATE_CODES
+from ..common import JOB_COLUMNS, US_STATE_CODES, cell_safe
 from ..logs import log
 from ..profile import OTHER, REMOTE, UNSPECIFIED_KEY
 from . import apis, ats
@@ -211,6 +211,8 @@ def gather(p, only=None):
         if c not in out:
             out[c] = None
     out = out[out["job_url"].notna()].drop_duplicates(subset="job_url")
+    for c in ("title", "company", "location"):
+        out[c] = out[c].map(cell_safe)
 
     out["_region"] = [region(p, loc, rem) for loc, rem in zip(out["location"], out["is_remote"], strict=True)]
     before = len(out)

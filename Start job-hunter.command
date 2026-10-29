@@ -90,7 +90,7 @@ if [ ! -x "$JH" ]; then
 fi
 
 # --- every run: open the page ---------------------------------------------------------------------
-mkdir -p "$DATA"
+( umask 077 && mkdir -p "$DATA" )  # your files: readable by your account only
 cd "$DATA" || fail
 # Tells Claude Code (and you) where the job-hunter command is, since it isn't on PATH.
 printf '%s\n' "$JH" > .job-hunter-command

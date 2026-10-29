@@ -15,7 +15,11 @@ resumes/
 *.docx
 *.db
 *.pkl
+*.bak
 evals/mock_ats/state.json
+# the fictional eval/demo person is fine to publish
+!evals/fixtures/candidate.yaml
+!evals/fixtures/answers.yaml
 
 # python / tooling
 __pycache__/
@@ -31,5 +35,6 @@ htmlcov/
 .venv/
 venv/
 
-# written by the Start job-hunter scripts
+# written by the Start job-hunter scripts and the web page (the page's key is in it)
 .job-hunter-command
+open-job-hunter.html

@@ -98,3 +98,30 @@ def test_more_never_stored(bank, q):
 def test_minimum_salary_and_work_email_not_reused(bank):
     assert bank.match("What's your minimum salary?") is None
     assert bank.match("Work email") is None
+
+
+# Security review 2026-10: rewordings, other languages and lookalike letters must not slip past.
+@pytest.mark.parametrize("q,a", [
+    ("Are you disabled?", "Yes"), ("What is your racial background?", "x"), ("Have you served in the military?", "Yes"),
+    ("Are you gay, lesbian or bisexual?", "No"), ("Sexe", "F"), ("Geschlecht", "x"), ("Género", "x"),
+    ("Raza / etnia", "x"), ("Behinderung", "nein"), ("Gеnder", "Woman"), ("Year of birth", "1985"), ("Age", "40"),
+    ("SS#", "x"), ("S.S.N.", "x"), ("DL number", "x"), ("CPF", "x"), ("Bank details for payroll", "x"),
+    ("Place of birth", "x"), ("Male or female?", "x"), ("Nationality", "x"), ("Fecha de nacimiento", "x"),
+    ("Anything else?", "123456789"), ("Anything else?", "123 45 6789"), ("Notes", "DE89370400440532013000"),
+])
+def test_reworded_never_stored(bank, q, a):
+    assert blocked(q, a), (q, a)
+    assert bank.add(q, a)[0] is False
+
+
+@pytest.mark.parametrize("q,a", [("Mobile phone", "3125550199"), ("Zip", "20003-1234"), ("Phone", "+1 312 555 0199"),
+                                 ("Summary", "FY24 revenue grew 20 percent"), ("Are you a US citizen?", "Yes")])
+def test_ordinary_answers_still_saved(q, a):
+    assert blocked(q, a) is None
+
+
+def test_negated_question_does_not_overwrite(bank):
+    q = "Are you legally authorized to work in the United States?"
+    assert bank.match(q)["answer"] == "Yes"
+    bank.add("Are you not legally authorized to work in the United States?", "No")
+    assert bank.match(q)["answer"] == "Yes"

@@ -74,7 +74,7 @@ echo.
 rem A desktop shortcut, if they want one.
 choice /C YN /M " Put a job-hunter shortcut on your desktop"
 if errorlevel 2 goto skip_shortcut
-powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'job-hunter.lnk')); $s.TargetPath='%APP%\Start job-hunter.bat'; $s.WorkingDirectory='%APP%'; $s.Save()"
+powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'job-hunter.lnk')); $s.TargetPath=(Join-Path $env:APP 'Start job-hunter.bat'); $s.WorkingDirectory=$env:APP; $s.Save()"
 :skip_shortcut
 rem The Claude Code skill (tailoring resumes, filling applications), if Claude Code is installed.
 if not exist "%USERPROFILE%\.claude" goto run
@@ -88,9 +88,9 @@ rem --- every run: open the page -----------------------------------------------
 if not exist "%DATA%" mkdir "%DATA%"
 cd /d "%DATA%"
 rem Tells Claude Code (and you) where the job-hunter command is, since it isn't on PATH.
-> ".job-hunter-command" echo %JH%
+> ".job-hunter-command" <nul set /p "=%JH%"
 echo.
-echo  Your job-hunter files are in %DATA%
+echo  Your job-hunter files are in "%DATA%"
 echo  Keep this window open while you use job-hunter. Close it to stop.
 echo.
 "%JH%" ui
@@ -109,6 +109,6 @@ exit /b 1
 echo.
 echo  Setup didn't finish. The lines above say what went wrong. Check your internet connection
 echo  and double-click Start job-hunter to try again. If it keeps failing, delete the .venv folder
-echo  inside %APP% first, then try again.
+echo  inside "%APP%" first, then try again.
 pause
 exit /b 1

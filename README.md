@@ -47,7 +47,7 @@ start it the same way.
 **The developer way.** Python 3.10 or newer:
 
 ```bash
-git clone https://github.com/OWNER/job-hunter && cd job-hunter
+git clone https://github.com/OMPsProjects/job-hunter && cd job-hunter
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e .                                       # gives you the `job-hunter` command
 ```
@@ -217,6 +217,10 @@ job-hunter lint   applications/<job>/resume.yaml   # AI-sounding words, and numb
 job-hunter render applications/<job>/resume.yaml --pages 2
 ```
 
+> **Beta:** applying in the browser is the newest and least-tested part. It has been tested against
+> the mock application site in `evals/`, not yet across many real employer sites. Read the review
+> table every time, and keep your browser tool set to ask before it acts if it offers that.
+
 When applying, it opens the employer's application, uploads the tailored PDF, and fills fields
 from your saved answers and resume. It **asks you** to create accounts or sign in (it never handles
 passwords or codes), **asks you** anything it has no answer for and saves it for next time,
@@ -338,6 +342,12 @@ Options for every command: `--profile PATH`, `--out DIR`, `-v`. `job-hunter -h` 
 - Setup's one-question-per-page flow follows the GOV.UK Design System's
   [question pages](https://design-system.service.gov.uk/patterns/question-pages/) pattern.
 - Job boards: [python-jobspy](https://github.com/speedyapply/JobSpy) (MIT) and each board's API.
+- Humanizing: the [humanizer](https://github.com/blader/humanizer) skill by Siqi Chen (MIT) is
+  bundled and applied to every resume, cover letter and essay; `jh lint` and the reviewer pass
+  also use phrase lists and a scoring check adapted from
+  [stop-slop](https://github.com/hardikpandya/stop-slop) by Hardik Pandya (MIT), and the shape
+  check is the scoring engine of [slop-guard](https://github.com/eric-tramel/slop-guard) by Eric
+  Tramel (MIT), included in `jobhunter/vendor/`. Details in `THIRD_PARTY_NOTICES.md`.
 
 ## Contributing
 

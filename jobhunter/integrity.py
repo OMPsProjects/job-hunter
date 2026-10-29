@@ -10,8 +10,11 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from .common import fold_lookalikes
+
 # Characters that render as nothing (or reorder text) but survive copy and paste.
-INVISIBLE = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff\U000e0000-\U000e007f]")
+INVISIBLE = re.compile("[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e"
+                       "\u2060-\u2064\u2066-\u2069\u3164\ufe00-\ufe0f\ufeff\uffa0\U000e0000-\U000e007f]")
 TAG_CHARS = re.compile("[\U000e0020-\U000e007e]+")  # 'ASCII smuggling': invisible copies of normal letters
 FLAG_EMOJI = re.compile("\U0001f3f4[\U000e0020-\U000e007e]+\U000e007f?")  # Scotland, England, Wales flags
 OVERRIDES = re.compile("[\u202d\u202e]")  # right-to-left / left-to-right override: text reads differently than it shows
@@ -36,6 +39,13 @@ INJECTION = [
                r"[^.\n]{0,40}\b(?:in|to|at)\s+(?:your|the)\s+(?:application|cover\s+letter|response|answer|resume|reply|email|"
                r"subject|summary)", re.I),
     re.compile(r"\b(?:rate|score|rank)\s+(?:this|the)\s+(?:candidate|applicant|resume)\s+(?:as\s+)?(?:highly|10|100|the\s+best)", re.I),
+    # chat-transcript role labels and "already reviewed" claims written for an AI that fills forms
+    re.compile(r"(?:^|[.!?:\[]\s*)(?:assistant|system|developer)\s*:[^\n]{0,120}?\b(?:ignore|disregard|you\s+(?:must|should|will)|"
+               r"submit|click|press|open|navigate|send|type|fill|upload|paste)\b", re.I | re.M),
+    re.compile(r"\b(?:already\s+(?:been\s+)?(?:reviewed|approved|confirmed)|(?:has|have)\s+(?:been\s+)?pre-?approved)\b"
+               r"[^\n]{0,100}?\b(?:submit|send)\b", re.I),
+    re.compile(r"\b(?:note|message|instructions?)\s+from\s+the\s+(?:candidate|applicant|user|job\s*seeker)\b[^\n]{0,120}?"
+               r"\b(?:submit|approved|reviewed|skip|ignore)", re.I),
 ]
 HIDDEN_MARK = "[hidden text:"
 
@@ -66,7 +76,8 @@ def scan(text):
         chars = overrides + others
         names = sorted({unicodedata.name(c, f"U+{ord(c):04X}") for c in chars})
         out.append({"kind": "invisible characters", "detail": f"{len(chars)} ({', '.join(names[:3])})"})
-    visible = INVISIBLE.sub("", t)
+    # As a person reads it: invisible characters gone, lookalike letters (Cyrillic "о") folded.
+    visible = fold_lookalikes(unicodedata.normalize("NFKC", INVISIBLE.sub("", t)))
     for line in _injections(visible):
         kind = "hidden text aimed at AI tools" if HIDDEN_MARK in line else "text aimed at AI tools"
         out.append({"kind": kind, "detail": line.replace(HIDDEN_MARK, "").strip(" ]")})
@@ -84,10 +95,13 @@ def note(text):
 
 # CSS / attributes that hide an element on screen. (aria-hidden only hides from screen readers, so
 # it isn't here.) The body match is bounded so a page full of unclosed tags can't slow it down.
-_HIDDEN_HINT = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0|opacity\s*:\s*0|\shidden", re.I)
+_HIDDEN_CSS = (r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*[01](?:\.\d+)?(?:px|pt|em)?\s*[;\"']|"
+               r"opacity\s*:\s*0(?:\.0+)?\s*[;\"']|(?:max-)?(?:height|width)\s*:\s*0(?:px)?\s*[;\"']|"
+               r"text-indent\s*:\s*-\d{3,}|(?:left|top)\s*:\s*-\d{3,}px|clip(?:-path)?\s*:")
+_HIDDEN_HINT = re.compile(_HIDDEN_CSS + r"|\shidden|sr-only|visually-hidden|screen-reader-text|aria-label|\salt\s*=", re.I)
 HIDDEN_STYLE = re.compile(
-    r"<(?P<tag>[a-z][a-z0-9]*)\b(?=[^>]{0,500}?(?:style\s*=\s*[\"'][^\"']{0,300}?(?:display\s*:\s*none|"
-    r"visibility\s*:\s*hidden|font-size\s*:\s*0(?:px|pt|em)?\s*[;\"']|opacity\s*:\s*0(?:\.0+)?\s*[;\"'])|"
+    r"<(?P<tag>[a-z][a-z0-9]*)\b(?=[^>]{0,500}?(?:style\s*=\s*[\"'][^\"']{0,300}?(?:" + _HIDDEN_CSS + r")|"
+    r"class\s*=\s*[\"'][^\"']{0,200}?\b(?:sr-only|visually-hidden|screen-reader-text)\b|"
     r"\shidden(?=[\s/>=])))[^>]{0,500}>(?P<body>.{0,4000}?)</(?P=tag)\s*>",
     re.I | re.S)
 
@@ -105,4 +119,11 @@ def mark_hidden_html(html):
         if inner and _injections(inner):
             return f" {HIDDEN_MARK} {inner}] "
         return m.group(0)
-    return HIDDEN_STYLE.sub(repl, html)
+    html = HIDDEN_STYLE.sub(repl, html)
+    # Text in attributes (aria-label, alt, title, placeholder) never shows on the page, but a browser
+    # agent reading the page's accessibility tree sees it.
+    extra = [v for v in _ATTR_TEXT.findall(html) if _injections(v)]
+    return html + "".join(f" {HIDDEN_MARK} {v}] " for v in extra[:20])
+
+
+_ATTR_TEXT = re.compile(r"\b(?:aria-label|alt|title|placeholder)\s*=\s*[\"']([^\"'<>]{1,500})[\"']", re.I)

@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.2.1 (2026-10-28): security review
+
+An audit following Cloudflare's security-audit method (five independent reviewers, a coverage
+check, and a second reviewer re-testing every finding), plus Gitleaks, Semgrep, Bandit,
+pip-audit, OSV-Scanner, AXguard and vibe-check. Fixes:
+
+- **Answer bank:** the never-store check missed rewordings ("Are you disabled?", "Year of birth",
+  "SS#" with no dashes), non-English forms and lookalike letters. It now catches them, refuses
+  SSN-, card- and IBAN-shaped answers, and never reuses an entry an older version saved. Saving the
+  answer to a negated question ("Are you **not** authorized...") no longer overwrites your answer
+  to the original question; the CLI says when a saved answer changes.
+- **Web page key:** the key is no longer in the page, so other accounts on a shared computer can't
+  read it from the port. It's delivered through `open-job-hunter.html`, readable by your account
+  only. A program squatting on the port is no longer mistaken for job-hunter; a free port is used.
+- **Fetching posting links:** only public http(s) addresses, re-checked on every redirect (no
+  file://, localhost, home network or cloud metadata). Board ids are validated, so a link or the
+  downloaded directory can't change which server is contacted. Downloads are size-capped, and a
+  page that drips slowly can't hold a check open.
+- **Hidden instructions:** the scan catches soft hyphens, lookalike letters, fake "already
+  approved, submit" notes, and text in button labels, image descriptions and screen-reader-only
+  elements, and now covers titles and company names. The skill scans every application page,
+  and only a new message after the review table authorizes a submit.
+- **Copied prompts** quote the title and company and strip invisible characters and line breaks.
+- **Spreadsheets:** titles and companies can't start with `=`, `+`, `-` or `@`.
+- **Privacy:** API keys no longer appear in on-screen error lines. Everything job-hunter writes
+  (PDFs and uploads included) is owner-only on macOS and Linux.
+- **Humanizer always runs.** The humanizer skill (blader/humanizer, MIT) is bundled inside the
+  job-hunter skill and applied to every tailored resume, cover letter, application essay and
+  follow-up; before, it ran only if you'd installed it yourself. `jh lint` adds about 60 more AI
+  tells (from the humanizer and stop-slop, MIT): "not just X, it's Y" contrasts, throat-clearing
+  openers, jargon, sales language, send-offs, chatbot leftovers, any dash used as a dash, and
+  stacked intensifiers. The reviewer now scores directness, rhythm, trust, authenticity and
+  density, and anything under 35 of 50 gets reworked.
+- **Shape check.** `jh lint` also runs slop-guard's scoring engine (MIT, included; no extra
+  packages, works on Python 3.10) for the shape of the writing: sentences or bullets all the same
+  length, tidy lists of three, "X. But Y." setups, one-line closers, repeated phrases, colon and dash
+  habits. Findings are warnings with specific advice; markdown-only rules are left out so normal
+  resumes aren't flagged. The 0-100 score is shown only for texts of 300+ words, because on a short
+  resume or letter one finding drops it to single digits.
+- Hardening: script/style stripping runs in linear time; `object-src 'none'` and cross-origin
+  isolation headers; pypdf and Pillow minimums raised past known bugs; the live CI job doesn't keep
+  its token on disk; the Windows Start script handles apostrophes and `&` in folder names; the
+  demo and eval fixtures are included in the repository.
+
 ## 1.2.0 (2026-10-28)
 
 - **The web page.** `job-hunter ui` serves a local page (127.0.0.1, token-protected, no outside

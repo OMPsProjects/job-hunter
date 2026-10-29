@@ -41,6 +41,23 @@ def write_text_atomic(path, text: str, private: bool | None = None) -> None:
         raise
 
 
+def write_bytes_atomic(path, data: bytes) -> None:
+    """Write a private binary file (an uploaded resume): created owner-only from the start."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")  # mode 600
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+
+
 def write_csv_atomic(df, path, **kw) -> None:
     kw.setdefault("index", False)
     write_text_atomic(path, df.to_csv(**kw))

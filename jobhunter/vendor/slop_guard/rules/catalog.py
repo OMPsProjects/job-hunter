@@ -1,0 +1,28 @@
+"""Builtin rule catalog for the packaged slop-guard pipeline."""
+
+DEFAULT_RULE_PATHS: tuple[str, ...] = (
+    "jobhunter.vendor.slop_guard.rules.word.slop_word.SlopWordRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.slop_phrase.SlopPhraseRule",
+    "jobhunter.vendor.slop_guard.rules.paragraph.structural_pattern.StructuralPatternRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.tone_marker.ToneMarkerRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.weasel_phrase.WeaselPhraseRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.ai_disclosure.AIDisclosureRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.placeholder.PlaceholderRule",
+    "jobhunter.vendor.slop_guard.rules.passage.rhythm.RhythmRule",
+    "jobhunter.vendor.slop_guard.rules.passage.em_dash_density.EmDashDensityRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.contrast_pair.ContrastPairRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.intrasentence_keyword_bold.IntrasentenceKeywordBoldRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.setup_resolution.SetupResolutionRule",
+    "jobhunter.vendor.slop_guard.rules.passage.colon_density.ColonDensityRule",
+    "jobhunter.vendor.slop_guard.rules.sentence.pithy_fragment.PithyFragmentRule",
+    "jobhunter.vendor.slop_guard.rules.paragraph.bullet_density.BulletDensityRule",
+    "jobhunter.vendor.slop_guard.rules.paragraph.blockquote_density.BlockquoteDensityRule",
+    "jobhunter.vendor.slop_guard.rules.paragraph.bold_term_bullet_run.BoldTermBulletRunRule",
+    "jobhunter.vendor.slop_guard.rules.paragraph.horizontal_rule_overuse.HorizontalRuleOveruseRule",
+    "jobhunter.vendor.slop_guard.rules.passage.phrase_reuse.PhraseReuseRule",
+    "jobhunter.vendor.slop_guard.rules.passage.copula_chain.CopulaChainRule",
+    "jobhunter.vendor.slop_guard.rules.passage.extreme_sentence.ExtremeSentenceRule",
+    "jobhunter.vendor.slop_guard.rules.passage.closing_aphorism.ClosingAphorismRule",
+    "jobhunter.vendor.slop_guard.rules.passage.paragraph_rhythm.ParagraphBalanceRule",
+    "jobhunter.vendor.slop_guard.rules.passage.paragraph_rhythm.ParagraphCVRule",
+)

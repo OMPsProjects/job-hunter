@@ -20,11 +20,11 @@ import re
 import threading
 import time
 import urllib.error
-import urllib.request
+import urllib.parse
 from pathlib import Path
 
 from . import datasets
-from .common import UA, HTTPError, company_key, http_json, title_similarity
+from .common import HTTPError, company_key, http_json, open_public, read_capped, strip_blocks, title_similarity
 from .fileio import write_text_atomic
 from .logs import log
 from .sources import ats
@@ -193,17 +193,16 @@ class Verifier:
         return (best, best_sim) if best_sim >= MATCH_THRESHOLD else (None, best_sim)
 
     def check_page(self, url):
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html"})
         try:
-            with urllib.request.urlopen(req, timeout=20) as r:
-                text = r.read(400_000).decode("utf-8", "ignore")
+            with open_public(url, headers={"Accept": "text/html"}, timeout=20) as r:
+                text = read_capped(r, 400_000).decode("utf-8", "ignore")
         except urllib.error.HTTPError as e:
             return "closed" if e.code in (404, 410) else "unverified"
         except Exception:
             return "unverified"
         # Only look at visible text: single-page apps ship every error message ("job no longer
         # available") inside their script bundles, which would read as closed.
-        visible = re.sub(r"(?is)<(script|style|noscript|template)\b.*?</\1>", " ", text)
+        visible = strip_blocks(text)
         visible = re.sub(r"(?s)<[^>]+>", " ", visible)
         visible = re.sub(r"\s+", " ", visible).strip()
         if len(visible) < 400:
@@ -211,10 +210,12 @@ class Verifier:
         return "closed" if CLOSED_TEXT.search(visible) else "employer_page_live"
 
     def check_workday_url(self, url):
-        m = re.search(r"https?://([^./]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([^/?#]+)(/job/[^?#]+)", url)
-        if not m:
+        u = urllib.parse.urlsplit(str(url))
+        h = re.fullmatch(r"([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com", (u.hostname or "").lower())
+        p = re.fullmatch(r"/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_.-]+)(/job/.+)", u.path or "")
+        if not (h and p) or u.scheme != "https":
             return None
-        tenant, wd, site, path = m.groups()
+        (tenant, wd), (site, path) = h.groups(), p.groups()
         try:
             info = http_json(f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}{path}", retries=0)
         except HTTPError as e:

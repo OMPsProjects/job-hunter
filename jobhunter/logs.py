@@ -17,7 +17,8 @@ _REDACT = [
     (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "<id>"),
     (re.compile(r"(?:\+1[\s.-]?)?\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b"), "<phone>"),
     (re.compile(r"\b(?:\d[ -]?){13,19}\b"), "<number>"),
-    (re.compile(r"(?i)(api[_-]?key|app[_-]?key|app[_-]?id|token|authorization-key)=([^&\s]+)"), r"\1=<secret>"),
+    (re.compile(r"(?i)(api[_-]?key|app[_-]?key|app[_-]?id|token|key|secret|registrationkey|authorization-key)=([^&\s]+)"),
+     r"\1=<secret>"),
     (re.compile(r"(?i)(jooble\.org/api/)[^/\s?]+"), r"\1<secret>"),
 ]
 
@@ -52,7 +53,7 @@ class _JsonLines(logging.Handler):
 
 class _Console(logging.Handler):
     def emit(self, record):
-        msg = record.getMessage()
+        msg = redact(record.getMessage())  # people paste these lines into bug reports
         if record.levelno >= logging.WARNING:
             msg = f"  ! {msg}"
         print(msg, flush=True)

@@ -31,18 +31,23 @@ time; don't edit another job's tailored resume.
 - If the job wants something the person doesn't have, leave it out and note it in `notes.md`.
   Don't write around a gap with vague phrasing.
 
-## 4. Humanize (two passes)
+## 4. Humanize (two passes, every time)
 
-1. If the `humanizer` skill is installed (`~/.claude/skills/humanizer`, from
-   github.com/blader/humanizer), run it on the summary and every bullet first. Check it
-   didn't change any name, number, date or title.
+1. Read `references/humanizer.md` (the humanizer skill, bundled with job-hunter so it's always
+   here) and apply it in embedded mode to the summary and every bullet: mark the tells, rewrite,
+   check, final version. Resume conventions win where they differ: bullets start with a verb and
+   never with "I" (skip §11's missing-subject edits and §2's fragment rule inside bullets), and
+   every name, number, date, title and tool stays exactly as the sources give it. If the person
+   gave you a writing sample, its voice wins over both.
 2. Then apply `references/humanizer-rules.md` yourself, and run:
 
 ```
 jh lint applications/<folder>/resume.yaml
 ```
 
-Fix every `[error]`. Warnings are judgment calls. An error saying a number isn't in the source
+Fix every `[error]`. Warnings are judgment calls, except `shape:` warnings (the shape check:
+bullets all the same length, tidy lists of three, setups and one-line closers, repeated phrases).
+Fix each of those unless it's plainly wrong for a resume, and say which ones you left and why. An error saying a number isn't in the source
 resume means one of two things: you introduced it (remove it), or it's true and derived (ask
 the user, then add it to `candidate/career_facts.md` so it passes next time).
 

@@ -2,7 +2,20 @@
 // Everything that comes from a job posting is untrusted: it is only ever set as text (h() below
 // never uses innerHTML), so a posting can't run code or change this page.
 
-const TOKEN = document.querySelector('meta[name="jh-token"]').content;
+// The page's key arrives in the link job-hunter opens (#k=...), never inside the page itself, so
+// nothing else on this computer can read it from the server. It is kept for this tab only.
+const TOKEN = (() => {
+  const m = location.hash.match(/^#k=([A-Za-z0-9_-]{20,64})$/);
+  let t = "";
+  if (m) {
+    t = m[1];
+    try { sessionStorage.setItem("jh-key", t); } catch { /* private window: this tab only */ }
+    history.replaceState(null, "", location.pathname + "#jobs");
+  } else {
+    try { t = sessionStorage.getItem("jh-key") || ""; } catch { t = ""; }
+  }
+  return t;
+})();
 const main = document.getElementById("main");
 const PARTS = [["fit", "Fit"], ["seniority", "Level"], ["location_score", "Place"], ["pay_score", "Pay"], ["freshness", "Fresh"]];
 const WEIGHT_KEY = { fit: "fit", seniority: "seniority", location_score: "location", pay_score: "pay", freshness: "freshness" };
@@ -37,7 +50,7 @@ function h(tag, attrs, ...kids) {
   for (const kid of kids.flat()) {
     if (kid === null || kid === undefined || kid === false) continue;
     // direction-override characters in posting text would make it display differently than it reads
-    el.append(kid instanceof Node ? kid : document.createTextNode(String(kid).replace(/[\u202a-\u202e\u2066-\u2069]/g, "")));
+    el.append(kid instanceof Node ? kid : document.createTextNode(visible(kid)));
   }
   return el;
 }
@@ -72,7 +85,13 @@ function toast(msg) {
 // Only real web links become links (a posting can't smuggle in javascript: or file: URLs).
 function safeUrl(u) { return /^https?:\/\//i.test(String(u || "")) ? String(u) : null; }
 function jobLink(j) { return safeUrl(j.employer_url) || safeUrl(j.job_url); }
-function oneLine(t, n = 140) { return String(t || "").replace(/[\s\u0000-\u001f]+/g, " ").trim().slice(0, n); }
+// Characters that don't show on screen (zero-width, tag characters, direction overrides): posting
+// text could use them to hide words in what you copy. Removed from everything shown or copied.
+const INVISIBLE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\u{e0000}-\u{e0fff}]/gu;
+const visible = (t) => String(t ?? "").replace(INVISIBLE, "");
+function oneLine(t, n = 140) { return visible(t).replace(/\s+/g, " ").trim().slice(0, n); }
+// For the "Ask Claude to..." prompts: one line, no quote marks to break out of the quotes around it.
+const quoted = (t, n) => `"${oneLine(t, n).replace(/["\u201c\u201d]/g, "'")}"`;
 function day(iso, long = false) {
   if (!iso) return "";
   const d = new Date(String(iso).length <= 10 ? `${iso}T12:00` : iso);
@@ -114,8 +133,11 @@ async function copy(text, what) {
 }
 
 function prompts(j) {
-  const job = `the ${oneLine(j.title, 120)} job at ${oneLine(j.company, 80)}`;
-  const link = jobLink(j) || "";
+  // Title, company and link come from the posting, so they're quoted and cleaned: a posting can't
+  // add sentences (or hidden text) to what you paste into Claude.
+  const job = `the job ${quoted(j.title, 120)} at ${quoted(j.company, 80)}`;
+  let link = "";
+  try { link = jobLink(j) ? new URL(oneLine(jobLink(j), 500)).href : ""; } catch { link = ""; }
   const ref = link ? ` (${link})` : "";
   return [
     ["Tailor my resume", `Tailor my resume for ${job}${ref}.`, "tailor your resume"],
@@ -161,9 +183,10 @@ const state = {
 async function refreshStatus() {
   try {
     state.status = await api("/api/status");
-  } catch (e) { state.status = null; }
+  } catch (e) { state.status = null; state.statusError = e.status; }
   const el = document.getElementById("run-state");
   const s = state.status;
+  if (!s && state.statusError === 403) { el.textContent = "job-hunter was restarted. Open it again from the Start file."; return; }
   if (!s) { el.textContent = "Can't reach job-hunter. Is it still running?"; return; }
   if (s.task && s.task.running) el.textContent = `${taskLabel(s.task.name)} is running...`;
   else if (s.last_run && s.last_run.run_at) {
@@ -368,7 +391,7 @@ async function renderReader() {
     if (mine !== readerToken) return;
     const p = document.getElementById("posting");
     p.classList.remove("muted");
-    p.textContent = full.description || (f.set === "ranked" ? "No description was saved for this job. Open the posting to read it."
+    p.textContent = visible(full.description) || (f.set === "ranked" ? "No description was saved for this job. Open the posting to read it."
       : "job-hunter keeps the full text only for the new jobs in your list. Open the posting to read it.");
   } catch (e) {
     if (mine === readerToken) document.getElementById("posting").textContent = e.message;
@@ -849,6 +872,16 @@ async function viewSettings() {
 }
 
 // ---------------------------------------------------------------- start
-window.addEventListener("hashchange", route);
-refreshStatus().then(route);
-setInterval(refreshStatus, 15000);
+function needKey() {
+  setMain(h("div", { class: "notice" },
+    h("h1", {}, "Open job-hunter from its Start file"),
+    h("p", {}, "For your privacy this page only works when job-hunter opens it. Double-click Start job-hunter "
+      + "(or the job-hunter shortcut on your desktop) and it will open a working page.")));
+}
+
+if (!TOKEN) needKey();
+else {
+  window.addEventListener("hashchange", route);
+  refreshStatus().then(route);
+  setInterval(refreshStatus, 15000);
+}

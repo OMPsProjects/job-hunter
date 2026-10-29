@@ -1,9 +1,11 @@
 """Small shared helpers: HTTP, text cleanup, salary normalization, name matching."""
 import difflib
 import html
+import ipaddress
 import json
 import random
 import re
+import socket
 import time
 import urllib.error
 import urllib.parse
@@ -22,10 +24,105 @@ JOB_COLUMNS = [
 ]
 
 
+MAX_RESPONSE = 20_000_000  # bytes; no job API or data file comes close
+
+
+def _no_query(url):
+    """The URL without its query string, so error messages never carry API keys."""
+    try:
+        u = urllib.parse.urlsplit(str(url))
+        return urllib.parse.urlunsplit((u.scheme, u.netloc, u.path, "", ""))
+    except ValueError:
+        return "<url>"
+
+
 class HTTPError(Exception):
     def __init__(self, code, url):
-        super().__init__(f"HTTP {code} for {url}")
+        super().__init__(f"HTTP {code} for {_no_query(url)}")
         self.code = code
+
+
+# ----------------------------- fetching untrusted URLs -----------------------------
+# Job postings choose their own apply links. Before job-hunter fetches one, the link must be a
+# plain http(s) address on the public internet: never a file on this computer, this computer
+# itself (127.0.0.1), the home or office network, or a cloud metadata address. Checked again on
+# every redirect.
+
+def public_url(url) -> bool:
+    try:
+        u = urllib.parse.urlsplit(str(url or "").strip())
+        if u.scheme not in ("http", "https") or not u.hostname or u.username or u.password:
+            return False
+        port = u.port or (443 if u.scheme == "https" else 80)
+        infos = socket.getaddrinfo(u.hostname, port, proto=socket.IPPROTO_TCP)
+    except (ValueError, OSError, UnicodeError):
+        return False
+    try:
+        return bool(infos) and all(ipaddress.ip_address(str(i[4][0]).split("%")[0]).is_global for i in infos)
+    except ValueError:
+        return False
+
+
+class _PublicRedirects(urllib.request.HTTPRedirectHandler):
+    max_redirections = 5
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not public_url(newurl):
+            raise urllib.error.URLError("redirect to a non-public address refused")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+# http(s) only: no file:// or ftp:// handlers at all, whatever a URL or redirect says
+_PUBLIC_OPENER = urllib.request.OpenerDirector()
+for _h in (urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), _PublicRedirects(),
+           urllib.request.HTTPErrorProcessor(), urllib.request.HTTPDefaultErrorHandler()):
+    _PUBLIC_OPENER.add_handler(_h)
+
+
+def open_public(url, headers=None, timeout=20):
+    """urlopen for an address that came from a job posting. Raises URLError if it isn't public."""
+    if not public_url(url):
+        raise urllib.error.URLError("not a public web address")
+    req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
+    return _PUBLIC_OPENER.open(req, timeout=timeout)
+
+
+def read_capped(resp, limit, deadline_s=45):
+    """Read at most `limit` bytes, giving up after `deadline_s` seconds in total (a server that
+    drips one byte at a time can't hold a worker forever)."""
+    end, chunks, n = time.monotonic() + deadline_s, [], 0
+    while n < limit:
+        if time.monotonic() > end:
+            raise TimeoutError("response too slow")
+        b = resp.read(min(65536, limit - n))
+        if not b:
+            break
+        chunks.append(b)
+        n += len(b)
+    return b"".join(chunks)
+
+
+_BLOCK_OPEN = re.compile(r"<(script|style|noscript|template)\b", re.I)
+
+
+def strip_blocks(s: str) -> str:
+    """Remove <script>/<style>/<noscript>/<template> blocks in linear time. (The obvious regex is
+    quadratic on a page full of unclosed tags, which lets one hostile posting stall a run.)"""
+    out, pos, low = [], 0, s.lower()
+    while True:
+        m = _BLOCK_OPEN.search(s, pos)
+        if not m:
+            break
+        out.append(s[pos:m.start()])
+        end = low.find("</" + m.group(1).lower(), m.end())
+        if end == -1:
+            pos = len(s)  # unclosed: the rest is inside the block
+            break
+        gt = s.find(">", end)
+        out.append(" ")
+        pos = len(s) if gt == -1 else gt + 1
+    out.append(s[pos:])
+    return "".join(out)
 
 
 def http_json(url, method="GET", body=None, headers=None, timeout=20, retries=2):
@@ -41,7 +138,9 @@ def http_json(url, method="GET", body=None, headers=None, timeout=20, retries=2)
         req = urllib.request.Request(url, data=data, headers=h, method=method)
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                raw = r.read()
+                raw = r.read(MAX_RESPONSE + 1)
+                if len(raw) > MAX_RESPONSE:
+                    raise HTTPError(0, f"{url} (response too large)")
                 return json.loads(raw) if raw else None
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503, 504) and attempt < retries:
@@ -56,8 +155,36 @@ def http_json(url, method="GET", body=None, headers=None, timeout=20, retries=2)
             if attempt < retries:
                 time.sleep(2 ** attempt + random.random())
                 continue
-            raise HTTPError(0, f"{url} ({e})") from None
+            raise HTTPError(0, f"{_no_query(url)} ({e})") from None
     return None
+
+
+_INVISIBLE = re.compile("[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160"
+                        "\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f"
+                        "\ufeff\uffa0\U000e0000-\U000e0fff]")
+
+
+# Lookalike letters (Cyrillic/Greek) that make a Cyrillic-e "Gender" slip past a plain-English word list.
+_CONFUSABLE = str.maketrans({
+    "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p", "\u0441": "c", "\u0443": "y", "\u0445": "x",
+    "\u0456": "i", "\u0458": "j", "\u0455": "s", "\u0501": "d", "\u04bb": "h", "\u04cf": "l", "\u0261": "g",
+    "\u0410": "a", "\u0412": "b", "\u0415": "e", "\u041a": "k", "\u041c": "m", "\u041d": "h", "\u041e": "o",
+    "\u0420": "p", "\u0421": "c", "\u0422": "t", "\u0425": "x", "\u04ae": "y", "\u03b1": "a", "\u03bf": "o",
+    "\u03bd": "v", "\u03b5": "e", "\u03b9": "i", "\u03ba": "k", "\u03c1": "p", "\u03c4": "t", "\u03c5": "u",
+    "\u03c7": "x"})
+
+
+def fold_lookalikes(s: str) -> str:
+    return str(s).translate(_CONFUSABLE)
+
+
+def cell_safe(v):
+    """A posting's title, company or location as it's kept: no invisible characters, and never
+    starting with = + - @ (a spreadsheet would treat "=HYPERLINK(...)" as a formula when you open
+    ranked.csv or applications.csv). Real titles and company names don't start with those."""
+    if not isinstance(v, str):
+        return v
+    return re.sub(r"^[\s=+\-@]+", "", _INVISIBLE.sub("", v)).strip()
 
 
 def qs(params: dict) -> str:
@@ -65,10 +192,10 @@ def qs(params: dict) -> str:
 
 
 def html_to_text(s) -> str:
-    s = str(s or "")
+    s = str(s or "")[:300_000]  # longer than any real posting
     if "&lt;" in s:  # some APIs (Greenhouse) send HTML-escaped HTML: unescape first, then strip tags
         s = html.unescape(s)
-    s = re.sub(r"<(script|style|template|noscript)\b[^>]*>.*?</\1\s*>", " ", s, flags=re.I | re.S)
+    s = strip_blocks(s)
     from .integrity import mark_hidden_html
     s = mark_hidden_html(s)  # hidden text aimed at AI tools is labeled so the scan can say it was hidden
     s = re.sub(r"<\s*(br|/p|/li|/h\d)\s*/?>", "\n", s, flags=re.I)

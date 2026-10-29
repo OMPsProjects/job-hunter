@@ -21,7 +21,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from .common import UA, company_key, http_json
+from .common import MAX_RESPONSE, UA, company_key, http_json
 from .fileio import write_text_atomic
 from .logs import log
 
@@ -63,9 +63,14 @@ def age_days(path: Path):
 
 
 def fetch_text(url, timeout=60) -> str:
+    if not str(url).startswith("https://"):
+        raise ValueError(f"refusing a non-https download: {url}")
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read().decode("utf-8", errors="replace")
+        raw = r.read(MAX_RESPONSE + 1)
+    if len(raw) > MAX_RESPONSE:
+        raise ValueError(f"download too large: {url}")
+    return raw.decode("utf-8", errors="replace")
 
 
 # ----------------------------- careers-site directory ------------------------
@@ -73,7 +78,7 @@ def fetch_text(url, timeout=60) -> str:
 def update_directory(fetch=fetch_text) -> int:
     """Download the companies directory and keep the career systems job-hunter can read.
     Returns how many companies it lists. Raises on a network failure."""
-    from .sources.ats import ats_from_url
+    from .sources.ats import ats_from_url, valid_slug
     manifest = http_json(DIRECTORY_MANIFEST, timeout=30)
     per_ats = (manifest or {}).get("by_ats_companies") or {}
     out = io.StringIO()
@@ -91,7 +96,7 @@ def update_directory(fetch=fetch_text) -> int:
                     continue
             else:
                 slug = (row.get("slug") or "").strip()
-            if not slug:
+            if not slug or not valid_slug(kind, slug):
                 continue
             key = company_key(row.get("name"))
             if key:

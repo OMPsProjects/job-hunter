@@ -6,7 +6,7 @@ results from running the apply eval with different browsers and models.
 ## Set up
 
 ```bash
-git clone https://github.com/OWNER/job-hunter && cd job-hunter
+git clone https://github.com/OMPsProjects/job-hunter && cd job-hunter
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pre-commit install            # blocks committing personal files or data

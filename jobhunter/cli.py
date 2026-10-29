@@ -504,16 +504,19 @@ def cmd_render(p, args):
 
 
 def cmd_lint(p, args):
-    from .humanize import fact_check, lint_text, read_sources
+    from .humanize import fact_check, lint_text, read_sources, resume_prose, shape_check
     from .render import all_bullets, is_letter, load_resume, resume_text
     data = load_resume(args.yaml)
     if is_letter(data):  # a cover letter: the body is what gets checked (not the date or address)
         from .humanize import lint_letter
         text = "\n".join(str(x) for x in data.get("paragraphs", []) or [])
         issues = lint_letter(data.get("paragraphs"))
+        shape = shape_check("\n\n".join(str(x) for x in data.get("paragraphs", []) or []), "letter")
     else:
         text = resume_text(data)
         issues = lint_text(text, all_bullets(data))
+        shape = shape_check(resume_prose(data.get("summary"), all_bullets(data)), "resume")
+    issues = issues + shape["issues"]
     sources = list(args.sources or [])
     cand = load_candidate(p.resolve(p.candidate_file))
     if not sources:
@@ -529,6 +532,8 @@ def cmd_lint(p, args):
     if not src_texts:
         print("[warn] no source resume found, so numbers weren't fact-checked")
     errors = sum(1 for lvl, _ in issues if lvl == "error") + len(missing)
+    if shape["score"] is not None:
+        print(f"shape score: {shape['score']}/100 ({shape['band']}; slop-guard, {shape['words']} words)")
     print(f"{errors} error(s), {sum(1 for lvl, _ in issues if lvl == 'warn')} warning(s)")
     return 1 if errors else 0
 
@@ -937,6 +942,10 @@ def main(argv=None):
     for stream in (sys.stdout, sys.stderr):
         with contextlib.suppress(AttributeError, ValueError):
             stream.reconfigure(errors="replace")
+    if os.name == "posix":
+        # Everything job-hunter writes (resumes, cover letters, results, logs, folders) is about you:
+        # make it readable by your account only, not by other accounts on a shared computer.
+        os.umask(0o077)
     args = build_parser().parse_args(argv)
     cmd = args.cmd or "search"
     profile_path = Path(args.profile) if args.profile else default_profile()

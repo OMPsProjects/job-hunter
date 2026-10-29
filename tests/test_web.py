@@ -1,5 +1,6 @@
 """The local web page's server: security checks, every endpoint, and the background task runner."""
 import json
+import os
 import sys
 import threading
 import urllib.error
@@ -61,12 +62,26 @@ def types_ns(**kw):
     return types.SimpleNamespace(**kw)
 
 
-def test_page_carries_token_and_strict_headers(ui):
+def test_page_never_carries_the_key_and_has_strict_headers(ui):
     with urllib.request.urlopen(ui.base + "/") as r:
         html = r.read().decode()
-        assert ui.app.token in html and "__JH_TOKEN__" not in html
+        assert ui.app.token not in html and "jh-token" not in html
         assert "default-src 'self'" in r.headers["Content-Security-Policy"]
+        assert "object-src 'none'" in r.headers["Content-Security-Policy"]
         assert r.headers["X-Frame-Options"] == "DENY"
+        assert r.headers["Cross-Origin-Resource-Policy"] == "same-origin"
+    for name in ("app.js", "app.css", "favicon.svg"):
+        with urllib.request.urlopen(f"{ui.base}/{name}") as r:
+            assert ui.app.token.encode() not in r.read()
+
+
+def test_key_only_in_a_private_launcher(ui):
+    from jobhunter.web.server import LAUNCHER
+    f = ui.folder / LAUNCHER
+    text = f.read_text()
+    assert f"127.0.0.1:{ui.app.port}/#k={ui.app.token}" in text
+    if os.name == "posix":
+        assert (f.stat().st_mode & 0o077) == 0
     for name in ("app.js", "app.css", "fonts/atkinson-Regular.woff2", "favicon.svg"):
         with urllib.request.urlopen(f"{ui.base}/{name}") as r:
             assert r.status == 200
@@ -229,13 +244,36 @@ def test_one_task_at_a_time(ui, monkeypatch):
     assert ui.call("/api/task/stop", {})[1]["stopped"] is True
 
 
-def test_busy_port_gives_a_message(capsys):
-    import socket
-    s = socket.socket()
-    s.bind(("127.0.0.1", 0))
-    s.listen()
+def test_stranger_on_the_port_is_not_trusted(tmp_path, capsys, monkeypatch):
+    """Another program (or another account) holding the port, even one imitating job-hunter's page,
+    is never treated as job-hunter: no browser is pointed at it, and job-hunter uses a free port."""
+    import http.server
+
+    class Fake(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            body = b'<meta name="jh-token" content="x">fake'
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+    fake = http.server.HTTPServer(("127.0.0.1", 0), Fake)
+    threading.Thread(target=fake.serve_forever, daemon=True).start()
+    port = fake.server_address[1]
+    (tmp_path / "profile.yaml").write_text("x: 1\n")
+    opened = []
+    monkeypatch.setattr(web, "_open", lambda p: opened.append(p))
+    got = {}
+
+    def ready(srv, app):
+        got["port"] = app.port
+        threading.Thread(target=srv.shutdown, daemon=True).start()
     try:
-        assert web.serve(Path("profile.yaml"), port=s.getsockname()[1], open_browser=False) == 1
+        assert web.serve(tmp_path / "profile.yaml", port=port, open_browser=False, ready=ready) == 0
     finally:
-        s.close()
-    assert "--port" in capsys.readouterr().err
+        fake.shutdown()
+    assert got["port"] != port and not opened
+    assert "is taken by another program" in capsys.readouterr().out
+    assert not (tmp_path / web.LAUNCHER).exists()  # removed when job-hunter stops

@@ -1,0 +1,23 @@
+name: Mac
+# Weekly and on demand (Actions tab > Mac > Run workflow), not on every push: GitHub's Mac
+# machines are often unavailable, and a job that never gets one would mark main as failed.
+on:
+  schedule:
+    - cron: "17 9 * * 1"   # Mondays 09:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -q

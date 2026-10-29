@@ -19,8 +19,8 @@
   under another link or spelling, and a job seen yesterday on Indeed isn't "new" today because
   Dreamwork listed it. A title gone for over 14 days that comes back is still new, flagged as a
   re-post. Excluded companies match any spelling too.
-- **CI:** one Mac job instead of four, and it no longer marks a run failed when GitHub has no Mac
-  machine free.
+- **CI:** Mac tests run weekly and on demand in their own workflow instead of on every push, so a
+  run GitHub can't find a Mac machine for no longer marks main as failed.
 
 ## 1.2.1 (2026-10-28): security review
 

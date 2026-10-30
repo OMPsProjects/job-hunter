@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.6.0 (2026-10-30): LinkedIn at a fraction of the tokens, with daily and weekly limits
+
+- **Token limits for LinkedIn:** a daily and a weekly limit (Settings; 150k and 600k to start).
+  `job-hunter linkedin plan` gives Claude only the searches and job descriptions that fit and
+  counts them as spent, so asking twice doesn't get more. `job-hunter linkedin usage` reads Claude
+  Code's record of the run and replaces the estimate with what was really used; later plans are
+  sized on those real numbers. Usage shows on the Settings and Search pages.
+- **Far fewer tokens per run:** LinkedIn is read by a small helper on Claude's low-cost model with
+  only browser and file tools, so its steps never fill the main conversation. One script per
+  search reads the whole results list and a few descriptions in a single step, instead of
+  screenshots. Several titles share one search; only jobs posted since the last run are asked
+  for; descriptions are read only for titles that fit and not read twice.
+- `job-hunter import` takes several files and fills in descriptions for jobs imported earlier.
+- The Start files install the helper (`~/.claude/agents/job-hunter-linkedin.md`) with the skill.
+
 ## 1.5.0 (2026-10-30): LinkedIn through your own browser
 
 - **LinkedIn without the "use a proxy" block:** "Search LinkedIn in my browser" (Setup) no longer

@@ -82,6 +82,15 @@ def _records(df, columns=None):
     return [{k: _clean(v) for k, v in row.items()} for row in df.to_dict(orient="records")]
 
 
+def _linkedin_usage(p):
+    from .. import linkedin
+    try:
+        linkedin.measure(p)
+        return linkedin.status(p)
+    except Exception:  # a budget display must never break the page
+        return None
+
+
 class Task:
     """One background `job-hunter` command at a time, with its output kept for the page."""
 
@@ -203,6 +212,7 @@ class App:
         out.update({
             "tracks": p.tracks, "locations": p.locations, "include_remote": p.include_remote,
             "linkedin_browser": p.linkedin_browser,
+            "linkedin_usage": _linkedin_usage(p) if p.linkedin_browser else None,
             "sources_on": [k for k in p.sources if p.source_on(k)], "problems": p.problems(),
             "candidate": {"found": bool(cand), "skills": len(cand.skills) if cand else 0,
                           "name": (cand.raw.get("name") if cand else "") or ""},
@@ -504,6 +514,9 @@ class App:
         ("filters", "exclude_companies"): list, ("filters", "exclude_keywords"): list,
         ("filters", "needs_sponsorship"): bool, ("search", "include_remote"): bool,
         ("verify", "enabled"): bool, ("verify", "top_n"): int,
+        ("search", "linkedin_browser"): bool,
+        ("linkedin", "daily_tokens"): "tokens", ("linkedin", "weekly_tokens"): "tokens",
+        ("linkedin", "max_searches"): "count", ("linkedin", "max_descriptions"): "count",
     }
 
     def settings(self, q, body):
@@ -515,6 +528,10 @@ class App:
         out = {f"{a}.{b}": _clean((data.get(a) or {}).get(b)) for a, b in self.SETTINGS}
         out["ranking.weights"] = {k: _clean(p.weights.get(k)) for k in self.WEIGHT_KEYS}
         out["sources"] = dict(p.sources)
+        from .. import linkedin
+        out.update({f"linkedin.{k}": v for k, v in linkedin.settings(p).items()})
+        out["search.linkedin_browser"] = p.linkedin_browser
+        out["linkedin_usage"] = _linkedin_usage(p)
         return out
 
     def _setting_value(self, key, kind, v):
@@ -538,6 +555,10 @@ class App:
             return v
         if kind is int:
             return int(finite(v, 1, 5000, key))
+        if kind == "tokens":
+            return int(finite(v, 0, 50_000_000, key))
+        if kind == "count":
+            return int(finite(v, 0, 100, key))
         if kind is list:
             if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
                 raise ApiError(400, f"{key} should be a list of text.")

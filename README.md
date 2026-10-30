@@ -174,11 +174,20 @@ browser-search list that the Claude skill checks for you on request.
 
 LinkedIn blocks searches from programs, so job-hunter doesn't search it itself. With "Search
 LinkedIn in my browser" on, ask Claude to "run my job search" (Claude Code with the job-hunter
-skill, plus [Claude in Chrome](https://claude.com/chrome) or the Claude app's built-in browser).
-Claude opens LinkedIn's job search in your browser, where you sign in yourself, reads up to 10
-searches a day at a person's pace, saves what it read, and runs
-`job-hunter import results/linkedin-<date>.jsonl`. Those jobs then go through the same filters,
-duplicate check, ranking and employer-site check as the rest.
+skill and the [Claude in Chrome](https://claude.com/chrome) extension). A small helper on Claude's
+fast, low-cost model opens LinkedIn's job search in your Chrome, where you sign in yourself, reads
+each results page with one short script (no screenshots), saves what it read, and imports it.
+Those jobs then go through the same filters, duplicate check, ranking and employer-site check as
+the rest.
+
+**Token limits.** Browsing with Claude is token-hungry, so LinkedIn has its own daily and weekly
+limits (Settings, or `linkedin:` in `profile.yaml`; 150k a day and 600k a week to start).
+`job-hunter linkedin plan` hands Claude only as many searches and job descriptions as the limits
+leave room for, and counts them as spent. Afterwards `job-hunter linkedin usage` reads Claude
+Code's own record of the helper's run and replaces the estimate with what it really used, so the
+next plan is sized on real numbers. `job-hunter linkedin status` shows where you are. To keep it
+cheap: several titles share one search, only jobs posted since the last run are asked for, and
+descriptions are read only for titles that fit (set descriptions to 0 for titles only).
 
 Claude only reads. It never applies, saves, follows, connects, messages or changes your account,
 and it stops at any CAPTCHA or "unusual activity" page. LinkedIn's terms still forbid automated
@@ -344,6 +353,7 @@ job-hunter health
 job-hunter companies add NAME [--url URL] [--track T] | discover [--add] [--fresh] | list | remove NAME
 job-hunter boards add URL [--name N] | list | remove URL
 job-hunter import FILE [--source linkedin]     # postings Claude read in your browser
+job-hunter linkedin plan | usage | status      # LinkedIn's token budget
 job-hunter verify --url U --company C --title T
 job-hunter resume FILE [--llm] [--force]
 job-hunter render YAML -o OUT.pdf --pages N    # resume or cover letter

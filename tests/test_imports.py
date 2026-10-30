@@ -101,3 +101,19 @@ def test_cli_import(tmp_path, capsys, monkeypatch):
     assert main(["--profile", str(tmp_path / "profile.yaml"), "import", str(src)]) == 0
     assert "Imported 2 linkedin posting" in capsys.readouterr().out
     assert len(imports.load_rows(tmp_path / "results", 24)) == 2
+
+
+def test_setup_writes_budget_and_cli_plan(tmp_path, capsys):
+    setup.run_setup(tmp_path, {"titles": ["Underwriter"], "locations": ["Chicago, IL"], "linkedin": True},
+                    ask=None, say=lambda *_: None)
+    raw = yaml.safe_load((tmp_path / "profile.yaml").read_text().split("\n", 4)[-1])
+    assert raw["linkedin"]["daily_tokens"] == 150_000 and raw["linkedin"]["max_descriptions"] == 15
+    prof = str(tmp_path / "profile.yaml")
+    assert main(["--profile", prof, "linkedin", "plan"]) == 0
+    out = capsys.readouterr().out
+    assert "LinkedIn today:" in out and "job-hunter LinkedIn read" in out
+    plan = json.loads((tmp_path / "results" / "linkedin-plan.json").read_text())
+    assert plan["allowed"] and plan["searches"][0]["url"].startswith("https://www.linkedin.com/jobs/search/?")
+    assert main(["--profile", prof, "linkedin", "usage", "--session", plan["session"], "--tokens", "42000"]) == 0
+    assert main(["--profile", prof, "linkedin", "status"]) == 0
+    assert "about 42k of 150k today" in capsys.readouterr().out

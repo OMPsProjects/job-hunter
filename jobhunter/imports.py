@@ -46,17 +46,20 @@ def import_file(path: Path, out_dir: Path, source: str) -> tuple[int, int]:
         rows = data if isinstance(data, list) else [data]
     except json.JSONDecodeError:
         rows = [json.loads(ln) for ln in text.splitlines() if ln.strip()]
+    rows = [r for r in rows if not (isinstance(r, dict) and "_meta" in r)]  # the page script's summary line
     folder = Path(out_dir) / "imported"
     folder.mkdir(parents=True, exist_ok=True)
-    seen = {r.get("job_url") for r in load_rows(out_dir, hours=24 * 365)}
+    have = {r["job_url"]: r for r in load_rows(out_dir, hours=24 * 365)}
     dest = folder / f"{source}-{dt.date.today().isoformat()}.jsonl"
     kept, skipped = [], 0
     for r in rows[:MAX_ROWS]:
         row = _clean_row(r, source)
-        if not row or row["job_url"] in seen:
+        old = have.get(row["job_url"]) if row else None
+        # already imported: only a description it didn't have before is worth adding
+        if not row or (old and (old.get("description") or not row["description"])):
             skipped += 1
             continue
-        seen.add(row["job_url"])
+        have[row["job_url"]] = row
         kept.append(row)
     if kept:
         with dest.open("a", encoding="utf-8") as fh:
@@ -66,13 +69,14 @@ def import_file(path: Path, out_dir: Path, source: str) -> tuple[int, int]:
 
 
 def load_rows(out_dir: Path, hours: int) -> list[dict]:
-    """Imported postings from files written in the last `hours`."""
+    """Imported postings from files written in the last `hours`, one per link (a later row fills in
+    what an earlier one lacked, like a description read on a second pass)."""
     folder = Path(out_dir) / "imported"
     if not folder.is_dir():
         return []
     cutoff = dt.datetime.now().timestamp() - hours * 3600
-    rows = []
-    for f in sorted(folder.glob("*.jsonl")):
+    by_url: dict[str, dict] = {}
+    for f in sorted(folder.glob("*.jsonl"), key=lambda f: f.stat().st_mtime):
         if f.stat().st_mtime < cutoff:
             continue
         for ln in f.read_text(encoding="utf-8").splitlines():
@@ -81,8 +85,9 @@ def load_rows(out_dir: Path, hours: int) -> list[dict]:
             except json.JSONDecodeError:
                 continue
             if isinstance(r, dict) and r.get("job_url"):
-                rows.append(r)
-    return rows
+                old = by_url.get(r["job_url"], {})
+                by_url[r["job_url"]] = {**old, **{k: v for k, v in r.items() if v not in ("", None) or k not in old}}
+    return list(by_url.values())
 
 
 def as_frame_rows(p, out_dir: Path) -> list[dict]:
@@ -92,7 +97,11 @@ def as_frame_rows(p, out_dir: Path) -> list[dict]:
     rows = []
     for r in load_rows(out_dir, p.hours_old):
         r = dict(r)
-        r["track"] = by_title.get(str(r.get("query") or "").lower(), first)
+        # "query" may hold several titles searched together ("A / B"): use the closest to the job's title
+        searched = [q.strip().lower() for q in str(r.get("query") or "").split(" / ") if q.strip().lower() in by_title]
+        words = set(re.findall(r"[a-z]+", str(r.get("title") or "").lower()))
+        best = max(searched, key=lambda q: len(words & set(re.findall(r"[a-z]+", q))), default="")
+        r["track"] = by_title.get(best, first)
         r["query"] = r.get("query") or "imported"
         rows.append(r)
     return rows

@@ -49,8 +49,9 @@ resumes · `companies.yaml` company and board list · `results/` search output a
 
 ## Daily run
 
-1. **Search.** If `search.linkedin_browser` is true in `profile.yaml`, first read LinkedIn in the
-   person's browser and import it: follow `references/linkedin.md`. Then `jh search` (10-30
+1. **Search.** If `search.linkedin_browser` is true in `profile.yaml`, first have the low-cost
+   LinkedIn helper read LinkedIn within the token budget: follow `references/linkedin.md` (never
+   browse LinkedIn yourself). Then `jh search` (10-30
    minutes; run it in the background and keep working). To only
    re-rank the last run, use `jh rank` and say which run you used (`results/run_summary.json`).
    Lines starting with `!` are failed requests, not a failed run. If every source failed, say so

@@ -19,6 +19,7 @@ PROFILE_SCHEMA = {
                "remote_allowed": [str], "title_match_threshold": NUM, "remote_only": bool,
                "linkedin_browser": bool},
     "sources": dict,
+    "linkedin": {"daily_tokens": int, "weekly_tokens": int, "max_searches": int, "max_descriptions": int},
     "browse_boards": [dict],
     "regions": [dict],
     "region_order": [str],

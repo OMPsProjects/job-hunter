@@ -82,6 +82,8 @@ fi
 if [ -d "$HOME/.claude" ]; then
   [ -f "$HOME/.claude/skills/job-hunter/SKILL.md" ] || echo " Adding the job-hunter skill to Claude Code."
   mkdir -p "$HOME/.claude/skills/job-hunter" && cp -R "$APP/skills/job-hunter/." "$HOME/.claude/skills/job-hunter/"
+  # the small, low-cost helper Claude uses to read LinkedIn in your browser
+  mkdir -p "$HOME/.claude/agents" && cp "$APP/skills/job-hunter/agents/job-hunter-linkedin.md" "$HOME/.claude/agents/"
 fi
 
 # --- every run: open the page ---------------------------------------------------------------------

@@ -16,6 +16,7 @@ import yaml
 from .candidate import LEVELS, draft_candidate, read_resume_text
 from .common import US_STATE_CODES
 from .fileio import write_text_atomic
+from .linkedin import DEFAULTS as LINKEDIN_BUDGET
 
 # Common US metros: the city people type -> the places a posting in that metro may name.
 METROS = {
@@ -381,6 +382,8 @@ def build_profile(a: dict) -> dict:  # noqa: C901
                    "sites": ["indeed"], "pause_seconds": 2,
                    # LinkedIn blocks the script ("429, use a proxy"); Claude reads it in your browser instead
                    **({"linkedin_browser": True} if a.get("linkedin") else {})},
+        # LinkedIn read by Claude in your browser: how many tokens it may use (Settings page)
+        **({"linkedin": dict(LINKEDIN_BUDGET)} if a.get("linkedin") else {}),
         "regions": regions,
         "region_order": order,
         "keep_unspecified_locations": True,

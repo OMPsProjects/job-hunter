@@ -146,7 +146,9 @@ def test_settings_round_trip(ui):
     assert status == 200 and s["ranking.weights"]["fit"] == 40
     body = {"ranking.pay_floor": "100000", "filters.needs_sponsorship": True, "ranking.weights": {"fit": 50, "seniority": 20,
             "location": 10, "pay": 10, "freshness": 10}, "filters.exclude_keywords": ["sales", "", " origination "],
-            "sources": {"remoteok": False}}
+            "sources": {"remoteok": False}, "linkedin.daily_tokens": 90000, "linkedin.max_descriptions": 0,
+            "search.linkedin_browser": True}
+    assert s["linkedin.weekly_tokens"] == 600000 and s["search.linkedin_browser"] is False
     status, r = ui.call("/api/settings", body)
     assert status == 200 and r["backup"] == "profile.yaml.bak"
     import yaml
@@ -154,6 +156,8 @@ def test_settings_round_trip(ui):
     assert data["ranking"]["pay_floor"] == 100000 and data["filters"]["needs_sponsorship"] is True
     assert data["filters"]["exclude_keywords"] == ["sales", "origination"]
     assert data["sources"]["remoteok"] is False
+    assert data["linkedin"] == {"daily_tokens": 90000, "max_descriptions": 0} and data["search"]["linkedin_browser"]
+    assert ui.call("/api/status")[1]["linkedin_usage"]["daily_tokens"] == 90000
     text = (ui.folder / "profile.yaml").read_text()
     assert "# Confirm each posting on the employer's own careers site." in text  # comments survive
     bak = ui.folder / "profile.yaml.bak"
@@ -161,7 +165,8 @@ def test_settings_round_trip(ui):
     for bad in ({"ranking.weights": {"fit": -5}}, {"ranking.weights": {"__evil__": 1}}, {"ranking.weights": {"fit": 0, "pay": 0}},
                 {"ranking.weights": [1, 2]}, {"ranking.pay_floor": float("inf")}, {"verify.top_n": -5},
                 {"filters.needs_sponsorship": "false"}, {"filters.exclude_companies": "Acme"},
-                {"sources": {"made_up_source": True}}, {"sources": {"remoteok": "maybe"}}, {"output_dir": "/etc"}):
+                {"sources": {"made_up_source": True}}, {"linkedin.daily_tokens": -1}, {"linkedin.max_searches": 1000},
+                {"linkedin.max_descriptions": "5"}, {"sources": {"remoteok": "maybe"}}, {"output_dir": "/etc"}):
         status, _ = ui.call("/api/settings", json.loads(json.dumps(bad).replace("Infinity", "1e999")))
         assert status == 400, bad
 

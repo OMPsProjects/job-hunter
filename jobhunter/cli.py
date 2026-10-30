@@ -507,18 +507,70 @@ def cmd_boards(p, args):
 # ----------------------------- resume ---------------------------------------
 
 def cmd_import(p, args):
+    import glob
+
+    from . import linkedin
     from .imports import import_file
-    src = Path(args.file)
-    if not src.exists():
-        print(f"No file at {src}")
-        return 1
-    try:
-        kept, skipped = import_file(src, p.resolve(p.output_dir or "results"), args.source)
-    except (ValueError, OSError) as e:
-        print(f"Couldn't import {src.name}: {e}")
-        return 1
+    files = [Path(f) for pat in args.file for f in (sorted(glob.glob(pat)) or [pat])]
+    kept = skipped = described = 0
+    for src in files:
+        if not src.exists():
+            print(f"No file at {src}")
+            return 1
+        try:
+            k, s = import_file(src, p.resolve(p.output_dir or "results"), args.source)
+        except (ValueError, OSError) as e:
+            print(f"Couldn't import {src.name}: {e}")
+            return 1
+        kept, skipped = kept + k, skipped + s
+        described += sum(1 for ln in src.read_text(encoding="utf-8").splitlines() if '"description"' in ln)
+    if args.session:
+        linkedin.record_import(p, args.session, kept, described)
     print(f"Imported {kept} {args.source} posting(s)" + (f", skipped {skipped} (already imported or missing "
           f"title, company or https link)" if skipped else "") + ". They join your next search.")
+    return 0
+
+
+def _tokens(n) -> str:
+    return f"{n / 1000:,.0f}k" if n >= 1000 else str(n)
+
+
+def cmd_linkedin(p, args):
+    from . import linkedin
+    if args.action in ("usage", "status", "plan"):
+        manual = {}
+        if args.tokens is not None:
+            if not args.session:
+                print("--tokens needs --session (the id from `linkedin plan`)")
+                return 1
+            manual[args.session] = args.tokens
+        for sid, est, got in linkedin.measure(p, manual=manual):
+            print(f"LinkedIn run {sid}: used about {_tokens(got)} tokens (estimated {_tokens(est)}).")
+    if args.action == "plan":
+        cand = p.resolve(p.candidate_file)
+        levels = []
+        if cand.exists():
+            import yaml
+            levels = (yaml.safe_load(cand.read_text(encoding="utf-8")) or {}).get("target_levels") or []
+        out = linkedin.plan(p, levels)
+        path = p.resolve(p.output_dir or "results") / "linkedin-plan.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        if args.json:
+            print(json.dumps(out, indent=1))
+        elif not out["allowed"]:
+            print(out["reason"] + " Skip LinkedIn today; the rest of the search runs as usual.")
+        else:
+            print(f"LinkedIn today: {len(out['searches'])} search(es), up to "
+                  f"{out['descriptions_per_search']} description(s) each, about {_tokens(out['estimated_tokens'])} tokens. "
+                  f"Plan saved to {path}; give the helper the label \"{out['agent_description']}\".")
+            if out["not_run"]:
+                print(f"{out['not_run']} more search(es) didn't fit today's budget; they go first next time.")
+        return 0
+    st = linkedin.status(p)
+    print(f"LinkedIn tokens: about {_tokens(st['today'])} of {_tokens(st['daily_tokens'])} today, "
+          f"{_tokens(st['week'])} of {_tokens(st['weekly_tokens'])} over the last 7 days "
+          f"({st['measured_runs']} run(s) measured; estimates x{st['scale']}).")
     return 0
 
 
@@ -936,8 +988,15 @@ def build_parser():
     bo.add_argument("--track", help="which track its jobs belong to (career sites only)")
 
     im = add("import", help="add postings Claude read in your browser (LinkedIn) to the next search")
-    im.add_argument("file", help="JSON lines: title, company, url (https), location, date_posted, description, query")
+    im.add_argument("file", nargs="+", help="JSON lines: title, company, url (https), location, date_posted, "
+                    "description, query (wildcards allowed)")
     im.add_argument("--source", default="linkedin", help="where they came from (default: linkedin)")
+    im.add_argument("--session", help="the LinkedIn plan id these came from")
+    li = add("linkedin", help="LinkedIn read in your browser: plan today's searches within the token budget")
+    li.add_argument("action", choices=["plan", "usage", "status"])
+    li.add_argument("--json", action="store_true", help="plan: print the whole plan")
+    li.add_argument("--session", help="usage: the plan id to record --tokens for")
+    li.add_argument("--tokens", type=int, help="usage: tokens a run used, if Claude Code's record can't be found")
 
     r = add("resume", help="read a resume file into candidate.yaml")
     r.add_argument("file")
@@ -1002,13 +1061,13 @@ def build_parser():
 COMMANDS = {
     "setup": cmd_setup, "check": cmd_check, "search": cmd_search, "rank": cmd_rank, "health": cmd_health,
     "verify": cmd_verify, "companies": cmd_companies, "boards": cmd_boards, "resume": cmd_resume,
-    "import": cmd_import,
+    "import": cmd_import, "linkedin": cmd_linkedin,
     "render": cmd_render, "lint": cmd_lint, "answers": cmd_answers, "track": cmd_track,
     "labels": cmd_labels, "eval-rank": cmd_eval_rank, "stats": cmd_stats, "scan": cmd_scan, "stories": cmd_stories, "ui": cmd_ui,
     "occupations": cmd_occupations,
     "data": cmd_data,
 }
-NEEDS_PROFILE = {"import", "search", "rank", "check", "verify", "companies", "boards", "health", "labels", "eval-rank"}
+NEEDS_PROFILE = {"import", "linkedin", "search", "rank", "check", "verify", "companies", "boards", "health", "labels", "eval-rank"}
 
 
 def main(argv=None):

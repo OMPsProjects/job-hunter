@@ -91,6 +91,9 @@ rem version, if Claude Code is on this computer.
 if not exist "%USERPROFILE%\.claude" goto skill_done
 if not exist "%USERPROFILE%\.claude\skills\job-hunter\SKILL.md" echo  Adding the job-hunter skill to Claude Code.
 xcopy /E /I /Q /Y "%APP%\skills\job-hunter" "%USERPROFILE%\.claude\skills\job-hunter" >nul
+rem the small, low-cost helper Claude uses to read LinkedIn in your browser
+if not exist "%USERPROFILE%\.claude\agents" mkdir "%USERPROFILE%\.claude\agents"
+copy /Y "%APP%\skills\job-hunter\agents\job-hunter-linkedin.md" "%USERPROFILE%\.claude\agents\job-hunter-linkedin.md" >nul
 :skill_done
 if not exist "%DATA%" mkdir "%DATA%"
 cd /d "%DATA%"

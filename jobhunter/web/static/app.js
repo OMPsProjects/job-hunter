@@ -468,7 +468,8 @@ async function viewSearch() {
       h("p", { class: "small muted" }, "Leave all unticked to search everything that's on."),
       h("div", { class: "row" }, sources.map((src) => h("label", { class: "check small" },
         h("input", { type: "checkbox", onchange: (e) => (e.target.checked ? pick.add(src) : pick.delete(src)) }), nameOf(src))))),
-    s.linkedin_browser ? h("div", { class: "notice" }, h("p", {}, "LinkedIn isn't searched from this page: LinkedIn blocks searches from programs. To include it, ask Claude to \"run my job search\" in the Claude app: it reads LinkedIn in your browser, where you're signed in, then runs this search.")) : null,
+    s.linkedin_browser ? h("div", { class: "notice" }, h("p", {}, "LinkedIn isn't searched from this page: LinkedIn blocks searches from programs. To include it, ask Claude to \"run my job search\" in Claude Code: it reads LinkedIn in your browser, where you're signed in, then runs this search."),
+      s.linkedin_usage ? h("p", { class: "small" }, `LinkedIn tokens: about ${Math.round(s.linkedin_usage.today / 1000)}k of ${Math.round(s.linkedin_usage.daily_tokens / 1000)}k today, ${Math.round(s.linkedin_usage.week / 1000)}k of ${Math.round(s.linkedin_usage.weekly_tokens / 1000)}k this week. Change the limits in Settings.`) : null) : null,
     h("p", { class: "small muted" }, "A full search takes 10 to 30 minutes. You can leave this page and come back."),
     h("pre", { class: "log", id: "log", "aria-live": "polite" }, s.task && s.task.name ? "" : "Output from the search shows here."),
     srcRows.length ? h("div", { class: "section" }, h("h2", {}, "Last search"),
@@ -1037,6 +1038,15 @@ async function viewSettings() {
   const remote = box("remote", s["search.include_remote"] ?? true);
   const verify = box("verify", s["verify.enabled"] ?? true);
   const topn = num("topn", s["verify.top_n"] ?? 150);
+  const liOn = box("lion", s["search.linkedin_browser"]);
+  const liDay = h("input", { type: "number", id: "liday", value: s["linkedin.daily_tokens"] ?? 150000, min: "0", step: "10000", style: "width: 12ch" });
+  const liWeek = h("input", { type: "number", id: "liweek", value: s["linkedin.weekly_tokens"] ?? 600000, min: "0", step: "10000", style: "width: 12ch" });
+  const liSearches = h("input", { type: "number", id: "lisearch", value: s["linkedin.max_searches"] ?? 6, min: "0", max: "100", step: "1", style: "width: 8ch" });
+  const liDesc = h("input", { type: "number", id: "lidesc", value: s["linkedin.max_descriptions"] ?? 15, min: "0", max: "100", step: "1", style: "width: 8ch" });
+  const u = s.linkedin_usage;
+  const k = (n) => (n >= 1000 ? `${Math.round(n / 1000).toLocaleString()}k` : String(n));
+  const liUsed = u ? h("p", { class: "small muted", id: "liused" }, `Used so far: about ${k(u.today)} tokens today and ${k(u.week)} over the last 7 days` +
+    (u.measured_runs ? "." : " (estimated until Claude's first LinkedIn run is measured).")) : null;
   const exCo = h("textarea", { id: "exco" }, (s["filters.exclude_companies"] || []).join("\n"));
   const exKw = h("textarea", { id: "exkw" }, (s["filters.exclude_keywords"] || []).join("\n"));
   const sources = Object.entries(s.sources || {}).map(([k, v]) => [k, h("select", { id: `src-${k}`, "data-label": nameOf(k) },
@@ -1051,6 +1061,9 @@ async function viewSettings() {
       "ranking.require_posted_pay": needPay.checked,
       "filters.needs_sponsorship": sponsor.checked, "search.include_remote": remote.checked,
       "verify.enabled": verify.checked, "verify.top_n": Number(topn.value) || 150,
+      "search.linkedin_browser": liOn.checked,
+      "linkedin.daily_tokens": Number(liDay.value) || 0, "linkedin.weekly_tokens": Number(liWeek.value) || 0,
+      "linkedin.max_searches": Number(liSearches.value) || 0, "linkedin.max_descriptions": Number(liDesc.value) || 0,
       "filters.exclude_companies": exCo.value.split("\n").map((x) => x.trim()).filter(Boolean),
       "filters.exclude_keywords": exKw.value.split("\n").map((x) => x.trim()).filter(Boolean),
       sources: Object.fromEntries(sources.map(([k, el]) => [k, JSON.parse(el.value)])),
@@ -1077,6 +1090,12 @@ async function viewSettings() {
     fieldRow("Words that rule a job out", exKw, "One per line. Checked in the title and the start of the description."),
     checkRow(sponsor, "I need visa sponsorship", "Drops postings that say they won't sponsor or need U.S. citizenship or a clearance."),
     checkRow(remote, "Include remote jobs"),
+    h("h2", {}, "LinkedIn"),
+    checkRow(liOn, "Search LinkedIn in my browser", "Claude reads LinkedIn where you're signed in, when you ask it to run your job search. Read-only, but LinkedIn's terms forbid automated reading, so there is some risk to your account."),
+    h("div", { class: "row" }, fieldRow("Token limit per day", liDay, "0 turns LinkedIn off"), fieldRow("Token limit per week", liWeek, "Over the last 7 days")),
+    h("div", { class: "row" }, fieldRow("Searches per day", liSearches, "Each covers several titles in one place"), fieldRow("Job descriptions per day", liDesc, "0 = titles only, the cheapest")),
+    h("p", { class: "small muted" }, "Claude stops LinkedIn for the day before a limit is reached. Limits are checked against what earlier runs really used, so the first run is an estimate."),
+    liUsed,
     h("h2", {}, "Checking employers' sites"),
     checkRow(verify, "Confirm jobs on the employer's own site"),
     fieldRow("How many of the top jobs to check", topn),

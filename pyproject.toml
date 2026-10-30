@@ -48,7 +48,7 @@ packages = ["jobhunter", "jobhunter.sources", "jobhunter.data", "jobhunter.web",
             "jobhunter.vendor.slop_guard.rules.sentence", "jobhunter.vendor.slop_guard.rules.word"]
 
 [tool.setuptools.package-data]
-"jobhunter.data" = ["*.json.gz", "*.txt", "README.md", "packs/*.yaml"]
+"jobhunter.data" = ["*.json.gz", "*.txt", "*.js", "README.md", "packs/*.yaml"]
 "jobhunter.web" = ["static/*", "static/fonts/*"]
 "jobhunter.vendor" = ["README.md"]
 "jobhunter.vendor.slop_guard" = ["LICENSE", "py.typed"]

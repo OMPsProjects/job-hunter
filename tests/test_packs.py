@@ -37,7 +37,7 @@ def test_setup_adds_packs_and_linkedin(tmp_path):
     setup.run_setup(tmp_path, {"titles": ["Commercial Real Estate Underwriter"], "packs": ["cre-finance", "nope"],
                                "linkedin": True, "avoid_companies": ["Berkadia"]}, ask=None, say=lambda *_: None)
     prof = yaml.safe_load((tmp_path / "profile.yaml").read_text().split("\n", 4)[-1])
-    assert prof["search"]["sites"] == ["indeed", "linkedin"]
+    assert prof["search"]["sites"] == ["indeed"] and prof["search"]["linkedin_browser"] is True
     comps = yaml.safe_load((tmp_path / "companies.yaml").read_text())
     names = {c["name"] for c in comps["companies"]}
     assert "Walker & Dunlop" in names and "Berkadia" not in names

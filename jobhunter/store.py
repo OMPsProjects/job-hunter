@@ -166,6 +166,8 @@ class Store:
         names = sources or [r[0] for r in self.db.execute("SELECT DISTINCT source FROM source_stats")]
         out = []
         for s in names:
+            if s == "imported":  # depends on whether you read LinkedIn that day, not on a site working
+                continue
             h = self.history(s, lookback)
             if not h:
                 continue

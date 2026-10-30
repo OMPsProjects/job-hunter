@@ -14,7 +14,7 @@ from jobhunter.sources.ats import posting_key  # noqa: E402
 WD = "https://cvshealth.wd1.myworkdayjobs.com/CVS_Health_Careers/job/CT---Hartford/Sr-Analyst--Pharmacy-Underwriter_R1021400-1"
 BB = "https://bbinsurance.wd1.myworkdayjobs.com/Careers/job/Remote---Montana/Renewal-Underwriter_R26_0000003297-1"
 OFF = ["jobspy", "remotive", "himalayas", "remoteok", "themuse", "adzuna", "usajobs", "jooble", "company_feeds",
-       "arbeitnow", "dreamwork"]
+       "arbeitnow", "dreamwork", "imported"]
 
 
 def test_company_id_spellings():

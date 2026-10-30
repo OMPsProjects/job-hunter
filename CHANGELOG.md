@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.0 (2026-10-30): LinkedIn through your own browser
+
+- **LinkedIn without the "use a proxy" block:** "Search LinkedIn in my browser" (Setup) no longer
+  has the script search LinkedIn, which LinkedIn blocks. Claude (job-hunter skill) reads
+  LinkedIn's job search in your signed-in browser instead: read-only, at most 10 searches a day,
+  at a person's pace. What it read joins the next search. Same idea as the MIT-licensed
+  neonwatty/job-apply-plugin.
+- **`job-hunter import FILE --source NAME`** adds postings read anywhere (title, company, https
+  link; optional location, date, description) to the next search. They're cleaned, de-duplicated
+  and used while they're within your search window.
+- The Search page says when LinkedIn has to be run from Claude, and the source health check
+  doesn't flag imported jobs as broken on days you didn't read LinkedIn.
+
 ## 1.4.1 (2026-10-30): fixes from the first real setup
 
 - **Resumes with company, city, title and dates on separate lines** (a common PDF layout) now

@@ -70,8 +70,8 @@ QUESTIONS = [
     ("locations", "Cities you'd work in, best first, separated by ';' (e.g. 'Chicago, IL; New York, NY')", "cities", ""),
     ("remote", "Open to remote jobs? (y/n)", "bool", "y"),
     ("remote_only", "Only remote jobs, none in an office? (y/n)", "bool", "n"),
-    ("linkedin", "Also search LinkedIn? Its terms forbid automated searching and it may limit your account (y/n)",
-     "bool", "n"),
+    ("linkedin", "Also search LinkedIn through Claude in your own browser? You stay signed in yourself; LinkedIn's\n"
+                 "  terms forbid automated reading, so there is some risk to your account (y/n)", "bool", "n"),
     ("remote_like_top_city", "Should remote jobs rank as high as your first city? (y/n)", "bool", "y"),
     ("pay_floor", "Lowest base pay you'd consider, per year (e.g. 85k, or Enter to skip)", "money", ""),
     ("pay_target", "Pay you're aiming for, per year (e.g. 110k, or Enter to skip)", "money", ""),
@@ -378,7 +378,9 @@ def build_profile(a: dict) -> dict:  # noqa: C901
                    **({"remote_only": True} if a.get("remote_only") else {}),
                    # two weeks: a first search over one week of postings is thin in most fields
                    "results_per_search": 25, "hours_old": 336,
-                   "sites": ["indeed", "linkedin"] if a.get("linkedin") else ["indeed"], "pause_seconds": 2},
+                   "sites": ["indeed"], "pause_seconds": 2,
+                   # LinkedIn blocks the script ("429, use a proxy"); Claude reads it in your browser instead
+                   **({"linkedin_browser": True} if a.get("linkedin") else {})},
         "regions": regions,
         "region_order": order,
         "keep_unspecified_locations": True,
@@ -477,7 +479,7 @@ def current_answers(repo: Path) -> dict:
         "pivot_titles": p.tracks.get("pivot", []), "levels": cand.get("target_levels") or [],
         "years_experience": cand.get("years_experience"), "skills": skill_list or list(p.skills),
         "locations": p.locations, "remote": p.include_remote, "remote_only": p.remote_only,
-        "linkedin": "linkedin" in p.sites,
+        "linkedin": p.linkedin_browser or "linkedin" in p.sites,
         "remote_like_top_city": bool(keys and p.remote_rank_as == keys[0]),
         "pay_floor": p.pay_floor, "pay_target": p.pay_target, "require_pay": p.require_posted_pay,
         "avoid_companies": p.exclude_companies, "avoid_keywords": p.exclude_keywords,

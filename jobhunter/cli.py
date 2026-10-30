@@ -506,6 +506,22 @@ def cmd_boards(p, args):
 
 # ----------------------------- resume ---------------------------------------
 
+def cmd_import(p, args):
+    from .imports import import_file
+    src = Path(args.file)
+    if not src.exists():
+        print(f"No file at {src}")
+        return 1
+    try:
+        kept, skipped = import_file(src, p.resolve(p.output_dir or "results"), args.source)
+    except (ValueError, OSError) as e:
+        print(f"Couldn't import {src.name}: {e}")
+        return 1
+    print(f"Imported {kept} {args.source} posting(s)" + (f", skipped {skipped} (already imported or missing "
+          f"title, company or https link)" if skipped else "") + ". They join your next search.")
+    return 0
+
+
 def cmd_resume(p, args):
     import yaml
     src = Path(args.file)
@@ -919,6 +935,10 @@ def build_parser():
     bo.add_argument("--name", help="a label for it")
     bo.add_argument("--track", help="which track its jobs belong to (career sites only)")
 
+    im = add("import", help="add postings Claude read in your browser (LinkedIn) to the next search")
+    im.add_argument("file", help="JSON lines: title, company, url (https), location, date_posted, description, query")
+    im.add_argument("--source", default="linkedin", help="where they came from (default: linkedin)")
+
     r = add("resume", help="read a resume file into candidate.yaml")
     r.add_argument("file")
     r.add_argument("--force", action="store_true", help="overwrite an existing candidate.yaml")
@@ -982,12 +1002,13 @@ def build_parser():
 COMMANDS = {
     "setup": cmd_setup, "check": cmd_check, "search": cmd_search, "rank": cmd_rank, "health": cmd_health,
     "verify": cmd_verify, "companies": cmd_companies, "boards": cmd_boards, "resume": cmd_resume,
+    "import": cmd_import,
     "render": cmd_render, "lint": cmd_lint, "answers": cmd_answers, "track": cmd_track,
     "labels": cmd_labels, "eval-rank": cmd_eval_rank, "stats": cmd_stats, "scan": cmd_scan, "stories": cmd_stories, "ui": cmd_ui,
     "occupations": cmd_occupations,
     "data": cmd_data,
 }
-NEEDS_PROFILE = {"search", "rank", "check", "verify", "companies", "boards", "health", "labels", "eval-rank"}
+NEEDS_PROFILE = {"import", "search", "rank", "check", "verify", "companies", "boards", "health", "labels", "eval-rank"}
 
 
 def main(argv=None):

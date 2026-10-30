@@ -27,6 +27,7 @@ const SOURCE_TEXT = {
   jobspy: "Indeed and other boards", indeed: "Indeed", linkedin: "LinkedIn", google: "Google Jobs", glassdoor: "Glassdoor",
   zip_recruiter: "ZipRecruiter", remotive: "Remotive", himalayas: "Himalayas", remoteok: "RemoteOK", themuse: "The Muse",
   arbeitnow: "Arbeitnow", adzuna: "Adzuna", usajobs: "USAJobs", jooble: "Jooble", dreamwork: "Dreamwork", company_feeds: "Employers' career sites",
+  imported: "Read in your browser (LinkedIn)",
   greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable",
   recruitee: "Recruitee", workday: "Workday", oracle: "Oracle", successfactors: "SuccessFactors",
   unknown: "Not recorded",
@@ -467,6 +468,7 @@ async function viewSearch() {
       h("p", { class: "small muted" }, "Leave all unticked to search everything that's on."),
       h("div", { class: "row" }, sources.map((src) => h("label", { class: "check small" },
         h("input", { type: "checkbox", onchange: (e) => (e.target.checked ? pick.add(src) : pick.delete(src)) }), nameOf(src))))),
+    s.linkedin_browser ? h("div", { class: "notice" }, h("p", {}, "LinkedIn isn't searched from this page: LinkedIn blocks searches from programs. To include it, ask Claude to \"run my job search\" in the Claude app: it reads LinkedIn in your browser, where you're signed in, then runs this search.")) : null,
     h("p", { class: "small muted" }, "A full search takes 10 to 30 minutes. You can leave this page and come back."),
     h("pre", { class: "log", id: "log", "aria-live": "polite" }, s.task && s.task.name ? "" : "Output from the search shows here."),
     srcRows.length ? h("div", { class: "section" }, h("h2", {}, "Last search"),
@@ -871,8 +873,8 @@ function setupWherePage(st) {
     }),
     cityBox,
     h("div", { class: "field" }, h("label", { class: "check" }, h("input", { type: "checkbox", checked: !!a.linkedin,
-      onchange: (e) => { a.linkedin = e.target.checked; } }), "Also search LinkedIn"),
-      h("span", { class: "hint" }, "Many office and finance jobs are only posted there. LinkedIn's terms forbid automated searching: it often blocks it after a few searches (job-hunter then skips it for that run), and it may limit your account.")),
+      onchange: (e) => { a.linkedin = e.target.checked; } }), "Search LinkedIn in my browser"),
+      h("span", { class: "hint" }, "Many office and finance jobs are only posted there. LinkedIn blocks searches from scripts, so Claude reads LinkedIn in your own browser, where you're signed in, when you ask it for your daily search. It only reads: it never applies, messages or connects. LinkedIn's terms forbid automated reading, so there is some risk to your account.")),
   ], { onNext: async (err) => {
     if (!a.remote_only && !a.locations.length && !a.remote) { err.textContent = "Add a city, or choose remote jobs."; return false; }
     return true;

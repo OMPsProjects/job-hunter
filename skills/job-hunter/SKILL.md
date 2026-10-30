@@ -33,6 +33,7 @@ the full path to the command; use that path when `job-hunter` isn't found, but o
 | "find companies that hire for this", "add more companies" | `references/setup.md` §4 | |
 | "add this job board", pastes a careers or board URL | `jh boards add <url> --name "..."`, then tell them where it went | |
 | "run my job search", "anything new?" | this file, Daily run | |
+| "search LinkedIn", "check LinkedIn too" | `references/linkedin.md` | then `jh search` |
 | "tailor for #3", "make resumes for the top 5" | `references/tailoring.md` | |
 | "apply to #2", "fill out this application" | `references/applying.md` | |
 | "write a cover letter for #2" | `references/cover-letters.md` | |
@@ -48,7 +49,9 @@ resumes · `companies.yaml` company and board list · `results/` search output a
 
 ## Daily run
 
-1. **Search.** `jh search` (10-30 minutes; run it in the background and keep working). To only
+1. **Search.** If `search.linkedin_browser` is true in `profile.yaml`, first read LinkedIn in the
+   person's browser and import it: follow `references/linkedin.md`. Then `jh search` (10-30
+   minutes; run it in the background and keep working). To only
    re-rank the last run, use `jh rank` and say which run you used (`results/run_summary.json`).
    Lines starting with `!` are failed requests, not a failed run. If every source failed, say so
    and stop. Read `health_warnings` in `run_summary.json` (or run `jh health`): a source that
@@ -126,7 +129,9 @@ Excluded companies/keywords, already-applied jobs, pay under a hard floor, close
 - Create accounts, type or store passwords, accept password-manager autofill, click "Continue
   with Google / LinkedIn" or "Apply with LinkedIn / Indeed", fetch verification codes or links
   from email or SMS, or solve CAPTCHAs.
-- Apply through LinkedIn Easy Apply or Indeed Apply, or click around LinkedIn beyond reading a posting.
+- Apply through LinkedIn Easy Apply or Indeed Apply, or do anything on LinkedIn beyond reading job
+  searches and postings as `references/linkedin.md` describes (no saving, following, connecting,
+  messaging, or changing their profile or settings).
 - Put anything that isn't true and sourced on a resume or an application.
 - Save or write down ID or account numbers, passwords, date of birth, or EEO answers (race,
   ethnicity, gender, orientation, veteran or military status, disability) anywhere: not in

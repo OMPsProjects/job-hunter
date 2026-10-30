@@ -160,7 +160,8 @@ browser-search list that the Claude skill checks for you on request.
 | Source | Key? | On by default | Notes |
 |---|---|---|---|
 | Indeed (via python-jobspy) | no | yes | |
-| LinkedIn (via python-jobspy) | no | **no** | opt in via `search.sites`; LinkedIn's terms forbid automated access and it may limit your account |
+| LinkedIn, read by Claude in your browser | no | **no** | tick "Search LinkedIn in my browser" in Setup (`search.linkedin_browser: true`). See [LinkedIn](#linkedin) below |
+| LinkedIn (via python-jobspy) | no | no | `search.sites`; LinkedIn usually blocks it after a few searches ("429, use a proxy") |
 | Google Jobs, Glassdoor, ZipRecruiter | no | no | opt in via `search.sites`; blocked or empty in late 2026 |
 | Remotive, Himalayas, RemoteOK | no | yes | remote jobs |
 | The Muse | no | yes | filtered by title (no keyword search) |
@@ -168,6 +169,26 @@ browser-search list that the Claude skill checks for you on request.
 | Dreamwork | no | **no** | about 2 million postings gathered from employers' career sites. Turn on with `dreamwork: true` under `sources:`. Sends your search titles and cities (nothing else: no resume, no account) to dreamworkhq.com. Links go to the employer's own posting when Dreamwork has it. Guest access returns 25 roles per search, and descriptions are fetched for the 40 newest |
 | Adzuna, USAJobs, Jooble | free key | when key set | put keys in `.env`: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `USAJOBS_API_KEY`, `USAJOBS_EMAIL`, `JOOBLE_API_KEY` |
 | Employer career sites | no | your list | Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Recruitee, Workday, Oracle Recruiting Cloud, SuccessFactors |
+
+### LinkedIn
+
+LinkedIn blocks searches from programs, so job-hunter doesn't search it itself. With "Search
+LinkedIn in my browser" on, ask Claude to "run my job search" (Claude Code with the job-hunter
+skill, plus [Claude in Chrome](https://claude.com/chrome) or the Claude app's built-in browser).
+Claude opens LinkedIn's job search in your browser, where you sign in yourself, reads up to 10
+searches a day at a person's pace, saves what it read, and runs
+`job-hunter import results/linkedin-<date>.jsonl`. Those jobs then go through the same filters,
+duplicate check, ranking and employer-site check as the rest.
+
+Claude only reads. It never applies, saves, follows, connects, messages or changes your account,
+and it stops at any CAPTCHA or "unusual activity" page. LinkedIn's terms still forbid automated
+reading, even in your own browser, so there is some risk LinkedIn limits your account. If that
+matters more to you than the extra jobs, leave it off and turn on LinkedIn job alerts by email
+instead.
+
+You can import from any board the same way: one JSON object per line with `title`, `company` and
+an `https` `url` (optional: `location`, `date_posted`, `description`, `query`), then
+`job-hunter import FILE --source <name>`.
 
 ### Duplicates
 
@@ -322,6 +343,7 @@ job-hunter rank
 job-hunter health
 job-hunter companies add NAME [--url URL] [--track T] | discover [--add] [--fresh] | list | remove NAME
 job-hunter boards add URL [--name N] | list | remove URL
+job-hunter import FILE [--source linkedin]     # postings Claude read in your browser
 job-hunter verify --url U --company C --title T
 job-hunter resume FILE [--llm] [--force]
 job-hunter render YAML -o OUT.pdf --pages N    # resume or cover letter

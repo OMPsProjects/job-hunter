@@ -35,6 +35,7 @@ DEFAULT_SOURCES = {
     "jooble": "auto",    # JOOBLE_API_KEY (free at jooble.org/api/about)
     "dreamwork": False,  # keyless aggregator; off because it sends your titles and cities to dreamworkhq.com
     "company_feeds": True,
+    "imported": True,    # postings Claude read in your browser (LinkedIn) and saved with `job-hunter import`
 }
 SOURCE_KEYS = {
     "adzuna": ["ADZUNA_APP_ID", "ADZUNA_APP_KEY"],
@@ -58,6 +59,8 @@ class Profile:
         self.results_per_search = int(s.get("results_per_search", 25))
         self.hours_old = int(s.get("hours_old", 168))
         self.sites = list(s.get("sites", DEFAULT_SITES))
+        # LinkedIn read by Claude in your own signed-in browser (skill), instead of the script
+        self.linkedin_browser = bool(s.get("linkedin_browser", False))
         self.pause_seconds = float(s.get("pause_seconds", 2))
         self.country = s.get("country_indeed", "USA")
         self.api_country = str(s.get("api_country", "us")).lower()  # Adzuna country code

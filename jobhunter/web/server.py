@@ -202,6 +202,7 @@ class App:
                 summary = {}
         out.update({
             "tracks": p.tracks, "locations": p.locations, "include_remote": p.include_remote,
+            "linkedin_browser": p.linkedin_browser,
             "sources_on": [k for k in p.sources if p.source_on(k)], "problems": p.problems(),
             "candidate": {"found": bool(cand), "skills": len(cand.skills) if cand else 0,
                           "name": (cand.raw.get("name") if cand else "") or ""},

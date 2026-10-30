@@ -16,7 +16,7 @@ from . import apis, ats
 UNSPECIFIED = {"", "nan", "none", "us", "usa", "united states", "us, us"}
 ONE_CALL_ATS = {"greenhouse", "lever", "ashby", "recruitee"}
 US_STATES = US_STATE_CODES | {"us", "usa"}
-ALL_SOURCES = ["jobspy", *apis.SOURCES, "company_feeds"]
+ALL_SOURCES = ["jobspy", *apis.SOURCES, "company_feeds", "imported"]
 
 
 class NoResults(RuntimeError):
@@ -102,7 +102,8 @@ def _jobspy_searches(p, scrape_jobs, blocked) -> list:
                     told = True
                     log.warning(f"{', '.join(sorted(blocked.sites)).title()} is refusing automated searches from this "
                                 f"computer (too many requests), so it's skipped for the rest of this search. "
-                                f"It usually works again in a day.", extra={"source": "jobspy"})
+                                f"It usually works again in a day. For LinkedIn, turn on 'Search LinkedIn in my browser' "
+                                f"in Setup instead: Claude reads it in your own signed-in browser.", extra={"source": "jobspy"})
             if not sites:
                 break
             try:
@@ -240,6 +241,9 @@ def gather(p, only=None):
                 run(name, lambda fn=fn: fn(p))
         if want("company_feeds") and (p.feeds or p.target_companies):
             run("company_feeds", lambda: run_feeds(p))
+        if want("imported"):
+            from ..imports import as_frame_rows
+            run("imported", lambda: as_frame_rows(p, p.resolve(p.output_dir or "results")))
     finally:
         log.removeHandler(counter)
     for name in stats:

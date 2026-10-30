@@ -499,6 +499,7 @@ class App:
     SETTINGS = {
         ("ranking", "weights"): "weights", ("ranking", "pay_floor"): "money", ("ranking", "pay_target"): "money",
         ("ranking", "pay_floor_is_hard"): bool, ("ranking", "pay_estimates"): bool,
+        ("ranking", "require_posted_pay"): bool,
         ("filters", "exclude_companies"): list, ("filters", "exclude_keywords"): list,
         ("filters", "needs_sponsorship"): bool, ("search", "include_remote"): bool,
         ("verify", "enabled"): bool, ("verify", "top_n"): int,

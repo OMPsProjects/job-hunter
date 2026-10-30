@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.1 (2026-10-30): fixes from the first real setup
+
+- **Resumes with company, city, title and dates on separate lines** (a common PDF layout) now
+  read correctly: employers were missed, so "Skip my past employers" did nothing.
+- **Search titles skip side roles** (owner, managing member, "concurrent") and drop brackets and
+  specialties: "Lead Commercial Real Estate Underwriter (Vice President)" is searched as
+  "Commercial Real Estate Underwriter". "Skip my current employer" ignores side roles too.
+- **Skills that wrap onto the next line** stay whole ("Loan Agreement & Legal Document Review").
+- **Spelling check:** a search title or city with a likely typo ("Commerical", "Washigton") gets a
+  "did you mean" warning, in setup's summary and at the start of each search.
+- **Jobs without pay are always kept** unless you tick the new "Don't show jobs that don't list
+  pay" (setup and Settings).
+- **LinkedIn blocks:** when LinkedIn refuses automated searching, the rest of the run skips it
+  instead of asking for every title and city.
+- Setup: the resume page's button says Continue once a resume is uploaded; cities are listed
+  alphabetically; a stray "null" next to the remote checkbox is gone.
+
 ## 1.4.0 (2026-10-29): setup starts from your resume
 
 - **Setup reads your resume:** job titles, employers, city, skills, level and years. Four short

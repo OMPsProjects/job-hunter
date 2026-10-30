@@ -277,6 +277,8 @@ def rank(df, p, cand=None, tracker_df=None, wage_cache=None):
         pay, pay_note, top = pay_part(row, p, est)
         if not reason and p.pay_floor_is_hard and p.pay_floor and top is not None and top < p.pay_floor:
             reason = "pay below floor"
+        if not reason and p.require_posted_pay and not posted:
+            reason = "pay not posted"
         if reason:
             row["excluded_reason"] = reason
             excluded.append(row)

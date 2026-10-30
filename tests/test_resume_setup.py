@@ -93,3 +93,85 @@ def test_setup_keeps_resume_titles_for_ranking(tmp_path):
     import yaml
     cand = yaml.safe_load((tmp_path / "candidate.yaml").read_text())
     assert cand["past_titles"][0].startswith("Vice President") and cand["contact"]["city"] == "Washington, DC"
+
+
+STACKED = """DANA REYES
+Washington, DC (relocating to Los Angeles) • (202) 555-0101 • dana@example.com
+CORE COMPETENCIES
+CMBS & Structured Credit • Loan Surveillance • DSCR, LTV,
+Refinance & Maturity Risk • Loan Agreement &
+Legal Document Review • Third-Party Report Review (Appraisal, Engineering, Zoning)
+PROFESSIONAL EXPERIENCE
+LAKESHORE CAPITAL BANK
+ Bethesda, MD
+Lead Commercial Real Estate Underwriter (Vice President)
+ 2022 – Present
+•
+Own credit analysis on 20-30 loans a year across conventional and agency executions.
+REYES PROPERTY HOLDINGS LLC
+ Washington, DC
+Managing Member / Principal (concurrent)
+ 2018 – Present
+•
+Structured a 15-investor syndication.
+HARBOR POINT LENDING (a private equity portfolio company)
+ Charlotte, NC
+Credit Analyst / Underwriter
+ 2013 – 2018
+"""
+
+
+def test_reads_company_city_title_dates_on_separate_lines():
+    r = parse_resume(STACKED)
+    assert [j["company"] for j in r["jobs"]] == ["Lakeshore Capital Bank", "Reyes Property Holdings LLC", "Harbor Point Lending"]
+    assert r["titles"][0] == "Lead Commercial Real Estate Underwriter (Vice President)"
+    assert r["current_employers"] == ["Lakeshore Capital Bank"]  # a concurrent side role isn't the employer to hide
+    assert setup.search_titles(r["titles"]) == ["Commercial Real Estate Underwriter", "Credit Analyst"]
+    assert "Loan Agreement & Legal Document Review" in r["skills"] and "LTV" in r["skills"]
+    assert "Third-Party Report Review (Appraisal, Engineering, Zoning)" in r["skills"]
+
+
+def test_spelling_warnings():
+    p = Profile({"search": {"locations": ["Washigton, DC", "New York, NY"]},
+                 "tracks": {"core": ["Commerical underwriter", "CMBS Originations Associate"]}})
+    probs = " ".join(p.problems())
+    assert "'commercial'" in probs and "Washington" in probs
+    assert "cmbs" not in probs.lower() and "originations" not in probs
+    assert setup._parse("cities", ["Washington, DC,"], "") == ["Washington, DC"]
+
+
+def test_jobs_without_pay_are_kept_unless_asked():
+    import pandas as pd
+
+    from jobhunter import rank
+    from jobhunter.candidate import Candidate
+    df = pd.DataFrame([{"title": "Underwriter", "company": "A", "location": "Remote", "job_url": "https://a/1",
+                        "description": "underwriting", "verified": "verified_open", "region": "remote"}])
+    base = {"tracks": {"core": ["Underwriter"]}, "ranking": {"pay_floor": 150000, "pay_estimates": False}}
+    ranked, excluded = rank.rank(df, Profile(base), Candidate({}), None)
+    assert len(ranked) == 1 and excluded.empty
+    base["ranking"]["require_posted_pay"] = True
+    ranked, excluded = rank.rank(df, Profile(base), Candidate({}), None)
+    assert ranked.empty and list(excluded["excluded_reason"]) == ["pay not posted"]
+
+
+def test_linkedin_block_stops_asking(monkeypatch):
+    import logging
+    calls = []
+
+    def fake(site_name, **kw):
+        calls.append(list(site_name))
+        if "linkedin" in site_name:
+            logging.getLogger("jobspy.linkedin").error("response status code 429 (blocked: use a proxy)")
+        return pd.DataFrame()
+    p = Profile({"search": {"locations": ["Chicago, IL", "Austin, TX"], "sites": ["indeed", "linkedin"],
+                            "pause_seconds": 0}, "tracks": {"core": ["Underwriter", "Credit Analyst"]}})
+    sources._jobspy_searches(p, fake, _blocked_handler())
+    assert calls[0] == ["indeed", "linkedin"] and all(c == ["indeed"] for c in calls[1:])
+
+
+def _blocked_handler():
+    import logging
+    h = sources._Blocked()
+    logging.getLogger("jobspy.linkedin").addHandler(h)
+    return h

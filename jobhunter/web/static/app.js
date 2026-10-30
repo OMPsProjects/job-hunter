@@ -640,7 +640,7 @@ const SETUP_LABELS = {
   remote_only: "Remote only", remote_like_top_city: "Remote ranks with your first city", pay_floor: "Lowest pay",
   pay_target: "Target pay", avoid_companies: "Companies to skip", avoid_keywords: "Words that rule a job out",
   target_companies: "Companies you'd like", discover_companies: "Find more companies", linkedin: "LinkedIn",
-  packs: "Ready-made lists",
+  packs: "Ready-made lists", require_pay: "Jobs without pay",
 };
 const LEVEL_TEXT = { intern: "Intern", entry: "Entry level", mid: "Mid level", senior: "Senior", manager: "Manager",
   director: "Director", vp: "Vice president", executive: "Executive" };
@@ -794,7 +794,7 @@ function setupResumePage(st) {
       if (!st.resume.error) applyResume(st, st.resume);
       await refreshSuggestions(st);
     } catch (e) { status.replaceChildren(h("p", { class: "error-text" }, e.message)); return; }
-    showResume();
+    renderSetupPage();
   });
   showResume();
   setupShell(st, "Start with your resume", [
@@ -853,14 +853,15 @@ function setupWherePage(st) {
   const cityBox = h("div", {});
   const drawCities = () => {
     if (a.remote_only) { cityBox.replaceChildren(); return; }
-    cityBox.replaceChildren(
+    cityBox.replaceChildren(...[
       chipField({ id: "q-cities", label: "Cities, best first", values: a.locations, onChange: (v) => { a.locations = v; },
-        hint: "Start typing and pick from the list, or type any city and press Enter.", options: st.cities || [],
-        placeholder: "Start typing a city" }),
+        hint: "Start typing and pick from the list, or type any city and press Enter.",
+        options: [...(st.cities || [])].sort((x, y) => x.localeCompare(y)), placeholder: "Start typing a city" }),
       city && !a.locations.some((c) => c.toLowerCase() === city.toLowerCase())
         ? h("button", { type: "button", class: "btn", onclick: () => { a.locations.unshift(city); drawCities(); } }, `Use my city: ${city}`) : null,
       a.remote ? h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.remote_like_top_city !== false,
-        onchange: (e) => { a.remote_like_top_city = e.target.checked; } }), "Remote jobs rank as high as my first city") : null);
+        onchange: (e) => { a.remote_like_top_city = e.target.checked; } }), "Remote jobs rank as high as my first city") : null,
+    ].filter(Boolean));
   };
   drawCities();
   setupShell(st, "Where you'll work", [
@@ -871,7 +872,7 @@ function setupWherePage(st) {
     cityBox,
     h("div", { class: "field" }, h("label", { class: "check" }, h("input", { type: "checkbox", checked: !!a.linkedin,
       onchange: (e) => { a.linkedin = e.target.checked; } }), "Also search LinkedIn"),
-      h("span", { class: "hint" }, "Many office and finance jobs are only posted there. LinkedIn's terms forbid automated searching, and it may limit your account if it notices.")),
+      h("span", { class: "hint" }, "Many office and finance jobs are only posted there. LinkedIn's terms forbid automated searching: it often blocks it after a few searches (job-hunter then skips it for that run), and it may limit your account.")),
   ], { onNext: async (err) => {
     if (!a.remote_only && !a.locations.length && !a.remote) { err.textContent = "Add a city, or choose remote jobs."; return false; }
     return true;
@@ -915,6 +916,9 @@ function setupFiltersPage(st) {
   setupShell(st, "Pay, skills and companies", [
     h("div", { class: "row" }, money("q-floor", "pay_floor", "Lowest pay", "Per year. Leave blank to skip."),
       money("q-target", "pay_target", "Target pay", "Per year. Leave blank to skip.")),
+    h("label", { class: "check" }, h("input", { type: "checkbox", checked: !!a.require_pay,
+      onchange: (e) => { a.require_pay = e.target.checked; } }), "Don't show jobs that don't list pay"),
+    h("span", { class: "hint" }, "Off by default: many good jobs don't post pay, and they're kept and ranked in the middle on pay."),
     h("div", { class: "field" }, h("span", { class: "field-label" }, "Skills"),
       fromResume.length ? [h("span", { class: "hint" }, "Already looking for these, from your resume. Tap × to drop one."), resumeBox] : null),
     chipField({ id: "q-skills", label: fromResume.length ? "Add other skills" : "Your main skills", values: extraSkills,
@@ -965,7 +969,7 @@ function setupReviewPage(st) {
     [1, "field"], [1, "titles"], [1, "adjacent_titles"], [1, "pivot_titles"], [1, "levels"], [1, "years_experience"],
     [2, "remote", a.remote_only ? "Remote only" : a.remote ? "My cities and remote" : "Only my cities"], [2, "locations"],
     [2, "linkedin", a.linkedin ? "Yes" : "No"],
-    [3, "pay_floor"], [3, "pay_target"], [3, "skills"], [3, "avoid_companies"], [3, "avoid_keywords"], [3, "target_companies"],
+    [3, "pay_floor"], [3, "pay_target"], [3, "require_pay", a.require_pay ? "Hide jobs without pay" : "Keep jobs without pay"], [3, "skills"], [3, "avoid_companies"], [3, "avoid_keywords"], [3, "target_companies"],
     [3, "packs", (a.packs || []).map((id) => ((st.packs || []).find((pk) => pk.id === id) || { name: id }).name).join(", ") || "None"],
   ];
   const errorP = h("p", { class: "error-text", role: "alert" });
@@ -1026,6 +1030,7 @@ async function viewSettings() {
   const target = h("input", { type: "number", id: "target", value: s["ranking.pay_target"] ?? "", min: "0", step: "1000", style: "width: 12ch" });
   const hardFloor = box("hardfloor", s["ranking.pay_floor_is_hard"] ?? true);
   const estimates = box("estimates", s["ranking.pay_estimates"] ?? true);
+  const needPay = box("needpay", s["ranking.require_posted_pay"] ?? false);
   const sponsor = box("sponsor", s["filters.needs_sponsorship"]);
   const remote = box("remote", s["search.include_remote"] ?? true);
   const verify = box("verify", s["verify.enabled"] ?? true);
@@ -1041,6 +1046,7 @@ async function viewSettings() {
       "ranking.weights": Object.fromEntries(Object.entries(weights).map(([k, el]) => [k, Number(el.value) || 0])),
       "ranking.pay_floor": floor.value === "" ? null : Number(floor.value), "ranking.pay_target": target.value === "" ? null : Number(target.value),
       "ranking.pay_floor_is_hard": hardFloor.checked, "ranking.pay_estimates": estimates.checked,
+      "ranking.require_posted_pay": needPay.checked,
       "filters.needs_sponsorship": sponsor.checked, "search.include_remote": remote.checked,
       "verify.enabled": verify.checked, "verify.top_n": Number(topn.value) || 150,
       "filters.exclude_companies": exCo.value.split("\n").map((x) => x.trim()).filter(Boolean),
@@ -1059,6 +1065,7 @@ async function viewSettings() {
     h("h2", {}, "Pay"),
     h("div", { class: "row" }, fieldRow("Lowest pay", floor, "Per year"), fieldRow("Target pay", target, "Per year")),
     checkRow(hardFloor, "Drop jobs that post pay under the lowest", "Jobs that don't post pay are kept."),
+    checkRow(needPay, "Don't show jobs that don't list pay", "Off by default: many good jobs don't post pay."),
     checkRow(estimates, "Estimate pay when a job doesn't post it", "From government data for the occupation and area. Counts at half strength, never drops a job."),
     h("h2", {}, "What matters in the score"),
     h("div", { class: "row" }, Object.entries(weights).map(([k, el]) => fieldRow({ fit: "Fit", seniority: "Level", location: "Place", pay: "Pay", freshness: "Freshness" }[k], el))),

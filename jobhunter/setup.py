@@ -75,6 +75,7 @@ QUESTIONS = [
     ("remote_like_top_city", "Should remote jobs rank as high as your first city? (y/n)", "bool", "y"),
     ("pay_floor", "Lowest base pay you'd consider, per year (e.g. 85k, or Enter to skip)", "money", ""),
     ("pay_target", "Pay you're aiming for, per year (e.g. 110k, or Enter to skip)", "money", ""),
+    ("require_pay", "Hide jobs that don't list pay? Most people keep them (y/n)", "bool", "n"),
     ("avoid_companies", "Companies to never show (e.g. your current employer; comma-separated)", "list", ""),
     ("avoid_keywords", "Words that rule a job out, like a kind of role you won't do (comma-separated)", "list", ""),
     ("target_companies", "Companies you'd like to work for; their career sites get searched every run (comma-separated)", "list", ""),
@@ -128,8 +129,8 @@ def _parse(kind, raw, default, say=None):
         items = raw if isinstance(raw, list) else _split(raw)
         return [str(x).strip() for x in items if str(x).strip()]
     if kind == "cities":
-        if isinstance(raw, list):
-            return [str(c).strip() for c in raw if str(c).strip()]
+        if isinstance(raw, list):  # 'Washington, DC,' -> 'Washington, DC'
+            return [str(c).strip().strip(",;").strip() for c in raw if str(c).strip().strip(",;").strip()]
         parts = _split(raw, ";")
         # someone typed "Chicago, IL, New York, NY": re-pair city/state
         if len(parts) == 1 and re.search(r",\s*[A-Z]{2}\s*,", parts[0]):
@@ -255,7 +256,9 @@ def search_title(title: str) -> str:
     Underwriter' -> 'Commercial Loan Underwriter'; 'Senior Underwriter, Multifamily' ->
     'Multifamily Underwriter'. Level words go (level is its own setting, and they narrow a search)."""
     from .resume_parse import _TITLE_WORDS
-    title = re.split(r"\s+/\s+|\s+&\s+(?=[A-Z])", str(title or ""))[0]  # 'Director of Ops / Chief of Staff'
+    title = re.sub(r"\s*\([^)]*\)?", " ", str(title or ""))  # '(Vice President)', '(concurrent)'
+    # 'Director of Ops / Chief of Staff', 'Director of Operations – Affordable Housing'
+    title = re.split(r"\s+/\s+|\s+&\s+(?=[A-Z])|\s+[–—-]\s+", title)[0]
     parts = [p.strip() for p in title.split(",") if p.strip()]
     parts = [p for p in parts if not _LEVEL_ONLY.match(p)] or parts
     core = next((p for p in parts if _TITLE_WORDS.search(_LEVEL_WORDS.sub("", p))), "")
@@ -263,12 +266,21 @@ def search_title(title: str) -> str:
         return re.sub(r"\s+", " ", title).strip()
     extra = [p for p in parts if p != core and len(p.split()) <= 3 and not _TITLE_WORDS.search(p)]
     out = " ".join(extra[:1] + [core])
-    out = re.sub(r"\s+", " ", _LEVEL_WORDS.sub("", out)).strip(" -/&")
+    bare = re.sub(r"\s+", " ", _LEVEL_WORDS.sub("", out)).strip(" -/&")
+    # 'Senior Underwriter' stays as is: 'Underwriter' alone would bring in every kind of underwriter
+    out = bare if len(bare.split()) >= 2 else re.sub(r"\s+", " ", out).strip()
     return out or str(title or "").strip()
 
 
+_SIDE_ROLE = re.compile(r"\bconcurrent\b|\bowner\b|\bfounder\b|\bco-?founder\b|\bmanaging member\b|"
+                        r"\bself-employed\b|\bfreelance\b|\bvolunteer\b|\bboard member\b", re.I)
+
+
 def search_titles(titles, limit=3) -> list[str]:
-    return list(dict.fromkeys(t for t in (search_title(x) for x in titles) if t))[:limit]
+    """Searches from resume titles, most recent first, leaving out side roles (owner, founder,
+    'concurrent'), which aren't the jobs someone is applying for."""
+    main = [t for t in titles if not _SIDE_ROLE.search(str(t))] or list(titles)
+    return list(dict.fromkeys(t for t in (search_title(x) for x in main) if t))[:limit]
 
 
 FIELDS = sorted([
@@ -378,6 +390,7 @@ def build_profile(a: dict) -> dict:  # noqa: C901
         "ranking": {"weights": {"fit": 40, "seniority": 20, "location": 15, "pay": 15, "freshness": 10},
                     "pay_floor": a.get("pay_floor"), "pay_target": a.get("pay_target"),
                     "pay_floor_is_hard": bool(a.get("pay_floor")),
+                    **({"require_posted_pay": True} if a.get("require_pay") else {}),
                     "remote_rank_as": keys[0] if keys and a.get("remote_like_top_city") else None,
                     "low_fit_threshold": 40},
         "filters": {"exclude_companies": a.get("avoid_companies") or [],
@@ -466,7 +479,7 @@ def current_answers(repo: Path) -> dict:
         "locations": p.locations, "remote": p.include_remote, "remote_only": p.remote_only,
         "linkedin": "linkedin" in p.sites,
         "remote_like_top_city": bool(keys and p.remote_rank_as == keys[0]),
-        "pay_floor": p.pay_floor, "pay_target": p.pay_target,
+        "pay_floor": p.pay_floor, "pay_target": p.pay_target, "require_pay": p.require_posted_pay,
         "avoid_companies": p.exclude_companies, "avoid_keywords": p.exclude_keywords,
         "target_companies": [], "discover_companies": bool(st.get("discover_companies", True)),
     }

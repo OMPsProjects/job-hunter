@@ -108,6 +108,7 @@ class Profile:
         self.pay_floor = rk.get("pay_floor")
         self.pay_target = rk.get("pay_target")
         self.pay_floor_is_hard = bool(rk.get("pay_floor_is_hard", True))
+        self.require_posted_pay = bool(rk.get("require_posted_pay", False))  # hide jobs that don't list pay
         self.remote_rank_as = rk.get("remote_rank_as")  # region key; default: your top region
         self.unverified_multiplier = float(rk.get("unverified_multiplier", 0.85))
         self.max_age_days = float(rk.get("max_age_days", 30))
@@ -220,10 +221,47 @@ class Profile:
         for name, v in self.sources.items():
             if v == "auto" and not self.source_on(name):
                 p.append(f"source {name}: off (set {' + '.join(SOURCE_KEYS.get(name, []))} to turn it on)")
+        p += spelling_problems(self)
         for k in self.weights:
             if k not in DEFAULT_WEIGHTS:
                 p.append(f"ranking.weights: unknown key {k!r} (use {', '.join(DEFAULT_WEIGHTS)})")
         return p
+
+
+def _close(word, vocab):
+    import difflib
+    hits = [h for h in difflib.get_close_matches(word, vocab, n=1, cutoff=0.88) if h[0] == word[0]]
+    return hits[0] if hits else None
+
+
+def spelling_problems(p) -> list:
+    """Likely typos in search titles and cities ('Commerical', 'Washigton'): a misspelled title
+    finds nothing on the job boards, and a misspelled city never matches a posting."""
+    out: list[str] = []
+    try:
+        from .occupations import _load
+        from .setup import us_cities
+        words = set(_load()[2])
+        cities = us_cities()
+    except Exception:  # the check is a convenience; never block a run on it
+        return out
+    city_names = {c.split(",")[0].strip().lower() for c in cities}
+    for titles in p.tracks.values():
+        for t in titles:
+            for w in re.findall(r"[a-z]{4,}", str(t).lower()):
+                if w not in words and w.rstrip("s") not in words:
+                    fix = _close(w, words)
+                    if fix:
+                        out.append(f"search title {t!r}: {w!r} looks misspelled (did you mean {fix!r}?). "
+                                   f"Job boards won't find titles with a typo.")
+    for loc in p.locations:
+        name = str(loc).split(",")[0].strip().lower()
+        if name and name not in city_names:
+            fix = _close(name, list(city_names))
+            if fix:
+                out.append(f"city {loc!r} looks misspelled (did you mean {fix.title()!r}?). "
+                           f"Jobs there won't match it.")
+    return out
 
 
 def load_profile(path, required=True) -> Profile:

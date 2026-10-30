@@ -62,22 +62,55 @@ class _ErrorCounter(logging.Handler):
             self.counts[src] = self.counts.get(src, 0) + 1
 
 
+class _Blocked(logging.Handler):
+    """Notices when a board refuses automated searching (LinkedIn answers 429), so the rest of
+    the run stops asking it instead of collecting the same refusal for every title and city."""
+
+    def __init__(self):
+        super().__init__(level=logging.ERROR)
+        self.sites: set[str] = set()
+
+    def emit(self, record):
+        if "429" in record.getMessage() or "blocked" in record.getMessage().lower():
+            self.sites.add(record.name.rsplit(".", 1)[-1])
+
+
 def run_jobspy(p) -> list:
     from jobspy import scrape_jobs  # imported here so `check` works without it
 
-    frames = []
+    blocked = _Blocked()
+    for name in ("jobspy.linkedin", "JobSpy:LinkedIn", "jobspy"):
+        logging.getLogger(name).addHandler(blocked)
+    try:
+        return _jobspy_searches(p, scrape_jobs, blocked)
+    finally:
+        for name in ("jobspy.linkedin", "JobSpy:LinkedIn", "jobspy"):
+            logging.getLogger(name).removeHandler(blocked)
+
+
+def _jobspy_searches(p, scrape_jobs, blocked) -> list:
+    frames, sites, told = [], list(p.sites), False
     for track, title in p.all_titles():
         passes = [(loc, {"hours_old": p.hours_old}) for loc in p.locations]
         if p.include_remote:
             # Indeed only allows one of hours_old / is_remote per call, so remote is its own pass
             passes.append(("United States", {"is_remote": True}))
         for loc, extra in passes:
+            if blocked.sites & set(sites):
+                sites = [s for s in sites if s not in blocked.sites]
+                if not told:
+                    told = True
+                    log.warning(f"{', '.join(sorted(blocked.sites)).title()} is refusing automated searches from this "
+                                f"computer (too many requests), so it's skipped for the rest of this search. "
+                                f"It usually works again in a day.", extra={"source": "jobspy"})
+            if not sites:
+                break
             try:
                 df = scrape_jobs(
-                    site_name=p.sites, search_term=title, location=loc,
+                    site_name=sites, search_term=title, location=loc,
                     results_wanted=p.results_per_search, country_indeed=p.country,
                     description_format="markdown",
-                    linkedin_fetch_description="linkedin" in p.sites,  # else LinkedIn rows have no description
+                    linkedin_fetch_description="linkedin" in sites,  # else LinkedIn rows have no description
                     **extra,
                 )
             except Exception as e:  # boards fail intermittently; keep going

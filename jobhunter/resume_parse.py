@@ -43,7 +43,10 @@ _CITY = re.compile(rf"\b([A-Z][A-Za-z.'\- ]{{1,30}}?),\s*((?:{_STATES})|D\.C\.)(
 
 def _clean(s: str) -> str:
     s = re.sub(r"\(\s*\)|\[\s*\]", " ", str(s or ""))  # brackets left empty once dates or a city are removed
-    return re.sub(r"\s+", " ", s).strip(" ,|•·-–—()\t")
+    s = re.sub(r"\s+", " ", s).strip(" ,|•·-–—\t")
+    if s.count("(") != s.count(")"):  # a bracket cut in half by removing dates: drop the stray one
+        s = s.strip("()").strip()
+    return s
 
 
 def _nice_city(city: str) -> str:
@@ -93,6 +96,27 @@ def _sections(lines: list[str]):
     return out
 
 
+def _is_body(lines: list[str], j: int) -> bool:
+    """A bullet, a sentence, or text under a bullet: not a title or employer line."""
+    ln = lines[j].strip()
+    if not ln or _BULLET.match(ln) or ln in "•·*▪●◦‣–-" or _RANGE.search(ln):
+        return True
+    if len(ln.split()) > 12 or ln[0].islower() or ln.endswith((".", ";")):
+        return True
+    prev = lines[j - 1].strip() if j > 0 else ""
+    return prev in ("•", "·", "*", "▪", "●", "◦", "-", "–")  # 'line after a lone bullet' is the bullet's text
+
+
+def _company_name(s: str) -> str:
+    """'BERKADIA (Berkshire Hathaway / Jefferies JV)' -> 'Berkadia'; 'WELLS FARGO' -> 'Wells Fargo'."""
+    s = _clean(re.sub(r"\s*\(.*?\)\s*", " ", s))
+    if s.isupper() and len(s) > 4:
+        small = {"LLC", "LP", "LLP", "INC", "JV", "USA", "US", "NA", "PLC"}
+        s = " ".join(w if w in small or (len(w) <= 3 and any(c.isdigit() for c in w)) else w.capitalize()
+                     for w in s.split())
+    return s
+
+
 def find_jobs(lines: list[str]) -> list[dict]:
     """[{title, company, start, end, current}] from the experience section, most recent first."""
     exp = _sections(lines)["exp"] or lines
@@ -104,11 +128,11 @@ def find_jobs(lines: list[str]) -> list[dict]:
         rest = _strip_location(ln[:m.start()] + " " + ln[m.end():])
         parts = [p for p in (_clean(x) for x in re.split(r"\s+[|•·]\s+|\s+[—–]\s+|\s+-\s+|\s{2,}|\bat\b", rest)) if p]
         near = []
-        for j in (i + 1, i - 1, i + 2):
-            if 0 <= j < len(exp):
-                cand = exp[j]
-                if cand.strip() and not _BULLET.match(cand) and not _RANGE.search(cand) and len(cand.split()) <= 12:
-                    near.append(_strip_location(cand))
+        # the title and employer sit within a few lines: 'COMPANY / City / Title / dates' or
+        # 'Company dates / Title' or 'Title dates / Company'
+        for j in (i - 1, i + 1, i - 2, i - 3, i + 2):
+            if 0 <= j < len(exp) and not _is_body(exp, j):
+                near.append(_strip_location(exp[j]))
         near = [n for n in near if n]
         title = next((p for p in parts + near if _is_title(p)), "")
         company = next((p for p in parts + near if p != title and not _is_title(p)), "")
@@ -130,7 +154,7 @@ def find_jobs(lines: list[str]) -> list[dict]:
         if not title:
             continue
         end = m.group(2)
-        jobs.append({"title": title, "company": company, "start": _clean(m.group(1)), "end": _clean(end),
+        jobs.append({"title": title, "company": _company_name(company), "start": _clean(m.group(1)), "end": _clean(end),
                      "current": not re.search(r"\d", end)})
     # most recent first: current jobs, then by end year
     def year(s):
@@ -155,13 +179,15 @@ def _known_skills() -> tuple:
 def find_skills(lines: list[str], text: str) -> list[str]:
     """The skills section's items, then known skill names found anywhere in the resume."""
     out: list[str] = []
-    for ln in _sections(lines)["skills"]:
-        ln = _BULLET.sub("", ln)
-        if ":" in ln and len(ln.split(":")[0].split()) <= 3:  # 'Technical: Excel, Argus'
-            ln = ln.split(":", 1)[1]
-        for item in re.split(r"[,;|•·/]|\s{2,}|\band\b", ln):
+    sec = _sections(lines)["skills"]
+    # one item can wrap onto the next line ('Loan Agreement &' / 'Legal Document Review')
+    joined = " ".join(_BULLET.sub("", ln).strip() for ln in sec)
+    for chunk in re.split(r"\s*[•·|;▪●◦]\s*|\s{2,}", joined):
+        if ":" in chunk and len(chunk.split(":")[0].split()) <= 3:  # 'Technical: Excel, Argus'
+            chunk = chunk.split(":", 1)[1]
+        for item in re.split(r",(?![^()]*\))", chunk):  # commas, but not inside brackets
             item = _clean(item).strip(".")
-            if 2 <= len(item) <= 40 and len(item.split()) <= 5 and not re.search(r"\d{4}", item):
+            if 2 <= len(item) <= 80 and len(item.split()) <= 9 and not re.search(r"\d{4}", item):
                 out.append(item)
     low = text.lower()
     for s in _known_skills():
@@ -176,6 +202,10 @@ def find_skills(lines: list[str], text: str) -> list[str]:
     return uniq[:40]
 
 
+_SIDE = re.compile(r"\bconcurrent\b|\bowner\b|\bfounder\b|\bmanaging member\b|\bself-employed\b|"
+                   r"\bfreelance\b|\bvolunteer\b|\bboard member\b", re.I)
+
+
 def parse_resume(text: str) -> dict:
     lines = [ln.rstrip() for ln in str(text or "").splitlines()]
     lines = [ln for ln in lines if ln.strip()]
@@ -188,7 +218,9 @@ def parse_resume(text: str) -> dict:
         "city": find_city(lines),
         "jobs": jobs,
         "titles": titles,
-        "current_employers": list(dict.fromkeys(j["company"] for j in jobs if j["current"] and j["company"])),
+        # your own company or a concurrent side role isn't the employer to hide jobs from
+        "current_employers": list(dict.fromkeys(j["company"] for j in jobs if j["current"] and j["company"]
+                                                and not _SIDE.search(j["title"]))),
         "employers": employers,
         "skills": find_skills(lines, text),
         "level": LEVELS[lvl] if lvl is not None else "",

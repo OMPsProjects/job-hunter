@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.7.0 (2026-10-31): a page that looks like it was designed
+
+- **New look for the web page**, worked through with the Interface Design skill's checks (one
+  focal point per view, hierarchy from weight and color, a signature, named tokens): newsprint
+  and ink, Newsreader for titles, scores and postings, Instrument Sans for controls.
+- **Shortlisted jobs are circled** in red pencil, like a want ad; closed or skipped ones are
+  crossed out.
+- **Jobs:** the score leads each row; the reading pane opens with score, pay, employer-site check
+  and deadline as headline figures, and the score's five parts as labelled bars.
+- **Applications** is a left-to-right pipeline (Shortlisted, Getting ready, Applied,
+  Interviewing, Offer, Closed). **Stats** leads with the three numbers that matter. **Setup**
+  shows its five steps and takes a dropped resume.
+- Dark mode ("night edition") follows your system setting. Fixed: the Stop button on the Search
+  page showed even with nothing running.
+
 ## 1.6.0 (2026-10-30): LinkedIn at a fraction of the tokens, with daily and weekly limits
 
 - **Token limits for LinkedIn:** a daily and a weekly limit (Settings; 150k and 600k to start).

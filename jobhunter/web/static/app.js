@@ -150,22 +150,19 @@ function prompts(j) {
   ];
 }
 
-function strip(j, weights, big = false) {
+function parts(j, weights) {
   const total = PARTS.reduce((s, [k]) => s + (weights[WEIGHT_KEY[k]] || 0), 0) || 1;
-  const bar = h("span", { class: big ? "strip big" : "strip", role: "img",
-    "aria-label": PARTS.map(([k, label]) => `${label} ${j[k] ?? "?"}`).join(", ") });
-  for (const [k] of PARTS) {
-    const w = (weights[WEIGHT_KEY[k]] || 0) / total;
-    const seg = h("span", { style: `flex: ${w} 0 0` }, h("i", { style: `width: ${Math.max(0, Math.min(100, Number(j[k]) || 0))}%` }));
-    bar.append(seg);
-  }
-  if (!big) return bar;
-  const legend = h("div", { class: "strip-legend", "aria-hidden": "true" });
-  legend.append(h("span", { class: "strip-note" }, "Each part's width is how much it counts; the dark fill is this job's score on it."));
+  const row = h("div", { class: "parts", role: "img",
+    "aria-label": PARTS.map(([k, label]) => `${label} ${j[k] ?? "?"} (weight ${weights[WEIGHT_KEY[k]] || 0})`).join(", ") });
   for (const [k, label] of PARTS) {
-    legend.append(h("span", {}, `${label} `, h("b", {}, j[k] ?? "?"), ` (weight ${weights[WEIGHT_KEY[k]] || 0})`));
+    const wt = weights[WEIGHT_KEY[k]] || 0;
+    if (!wt) continue;
+    const v = Math.max(0, Math.min(100, Number(j[k]) || 0));
+    row.append(h("div", { class: `part${v < 45 ? " weak" : ""}`, style: `flex: ${wt / total} 1 0`, title: `${label}: ${j[k] ?? "?"} of 100, counts ${wt} of ${total}` },
+      h("span", { class: "track" }, h("i", { style: `width: ${v}%` })),
+      h("span", { class: "lbl", "aria-hidden": "true" }, label, h("b", {}, j[k] ?? "?"))));
   }
-  return h("div", {}, bar, legend);
+  return h("div", {}, row, h("p", { class: "parts-note" }, "Each bar is as wide as that part counts; the fill is this job's score on it."));
 }
 
 function weakParts(j) {
@@ -191,11 +188,14 @@ async function refreshStatus() {
   const s = state.status;
   if (!s && state.statusError === 403) { el.textContent = "job-hunter was restarted. Open it again from the Start file."; return; }
   if (!s) { el.textContent = "job-hunter isn't running. Double-click Start job-hunter (or the desktop shortcut) to open it again."; return; }
-  if (s.task && s.task.running) el.textContent = `${taskLabel(s.task.name)} is running...`;
+  const today = new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  if (s.task && s.task.running) el.textContent = `${today} · ${taskLabel(s.task.name)} is running...`;
   else if (s.last_run && s.last_run.run_at) {
     const when = new Date(s.last_run.run_at);
-    el.textContent = `Last search ${when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}: ${s.last_run.new ?? 0} new`;
-  } else el.textContent = s.has_profile ? "No searches yet" : "Not set up yet";
+    const sameDay = when.toDateString() === new Date().toDateString();
+    const at = when.toLocaleString([], sameDay ? { hour: "numeric", minute: "2-digit" } : { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    el.textContent = `${today} · Last search ${at} · ${s.last_run.new ?? 0} new`;
+  } else el.textContent = `${today} · ${s.has_profile ? "No searches yet" : "Not set up yet"}`;
 }
 
 function taskLabel(name) {
@@ -325,9 +325,10 @@ function jobRow(j) {
   const li = h("li", { class: "job", role: "option", "aria-selected": String(j.job_url === f.selected), tabindex: j.job_url === f.selected ? "0" : "-1",
     "data-url": j.job_url, onclick: () => select(j.job_url, true),
     onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(j.job_url, true); } } },
-    h("span", { class: "score" }, j.rank_score !== null && j.rank_score !== undefined ? Math.round(j.rank_score) : "-"),
-    h("span", { class: "title" }, picked ? h("span", { class: "hl" }, j.title) : j.title),
-    j.status ? h("span", { class: "side" }, h("span", { class: "status" }, STATUS_TEXT[j.status] || j.status)) : null,
+    h("span", { class: `score${picked ? " circled" : ""}${Number(j.rank_score) < 40 ? " low" : ""}` },
+      j.rank_score !== null && j.rank_score !== undefined ? Math.round(j.rank_score) : "-"),
+    h("span", { class: `title${j.verified === "closed" || j.status === "skipped" ? " struck" : ""}` }, j.title),
+    j.status ? h("span", { class: "side" }, h("span", { class: `status${picked ? " picked" : ""}` }, STATUS_TEXT[j.status] || j.status)) : null,
     h("span", { class: "meta" }, [j.company, j.location, payText(j)].filter(Boolean).join(", ")),
     flags.length ? h("span", { class: "flags" }, flags) : null);
   return li;
@@ -356,33 +357,41 @@ async function renderReader() {
   const verified = VERIFIED_TEXT[j.verified] || "Not checked";
   const gaps = String(j.gaps || "").split(";").map((s) => s.trim()).filter(Boolean);
   const why = String(j.why || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const labelBtn = (v, text) => h("button", { class: "btn quiet", "aria-pressed": String(j.label === v), onclick: () => setLabel(j, j.label === v ? "" : v) }, text);
+  const labelBtn = (v, text) => h("button", { type: "button", "aria-pressed": String(j.label === v), onclick: () => setLabel(j, j.label === v ? "" : v) }, text);
+  const picked = j.status && j.status !== "skipped";
+  const open = ["verified_open", "employer_page_live"].includes(j.verified);
+  const estimate = j.pay_estimate && !j.max_amount && !j.min_amount;
+  const figure = (label, value, note, cls = "") => h("div", { class: `figure ${cls}` }, h("span", { class: "kicker" }, label),
+    value, note ? h("span", { class: "note" }, note) : null);
   const inner = h("div", { class: "reader-inner" },
     h("button", { class: "btn quiet back-to-list", onclick: closeReader }, "Back to the list"),
-    h("h1", { tabindex: "-1" }, j.status && j.status !== "skipped" ? h("span", { class: "hl" }, j.title) : j.title),
-    h("p", { class: "where" }, [j.company, j.location].filter(Boolean).join(", ")),
-    j.fit !== undefined && j.fit !== null ? strip(j, f.weights, true) : null,
-    h("dl", { class: "facts" },
-      j.rank_score !== null && j.rank_score !== undefined ? [h("dt", {}, "Score"), h("dd", {}, `${Math.round(j.rank_score)} of 100`)] : null,
-      h("dt", {}, "Pay"), h("dd", {}, payText(j) + (j.pay_estimate && !j.max_amount && !j.min_amount ? " for this kind of job in this area (government data, not this employer's offer)" : "")),
-      h("dt", {}, "Employer site"), h("dd", {}, verified),
-      j.apply_by ? [h("dt", {}, "Apply by"), h("dd", {}, day(j.apply_by, true))] : null,
-      j.date_posted ? [h("dt", {}, "Posted"), h("dd", {}, day(j.date_posted, true))] : null,
-      j.status ? [h("dt", {}, "Your status"), h("dd", {}, STATUS_TEXT[j.status] || j.status)] : null),
+    h("p", { class: "where" }, [j.company, j.location].filter(Boolean).join(" · ")),
+    h("h1", { tabindex: "-1", class: j.verified === "closed" ? "struck" : "" }, j.title),
+    h("div", { class: "figures" },
+      j.rank_score !== null && j.rank_score !== undefined ? figure("Score",
+        h("span", {}, h("span", { class: `value${picked ? " circled" : ""}` }, Math.round(j.rank_score)), h("span", { class: "of" }, "/100")), null, "hero") : null,
+      figure("Pay", h("span", { class: "value" }, payText(j)), estimate ? "Typical for this job and area (government data), not this employer's offer" : null),
+      figure("Employer site", h("span", { class: "value", style: "font-size: 1.125rem" },
+        h("span", { class: open ? "dot-open" : j.verified === "closed" ? "dot-caution" : "dot-quiet" }, verified))),
+      j.apply_by ? figure("Apply by", h("span", { class: "value" }, day(j.apply_by))) : null),
+    j.fit !== undefined && j.fit !== null ? parts(j, f.weights) : null,
     j.integrity_note ? h("div", { class: "notice bad" }, h("p", {}, "This posting contains hidden text or lines written for AI tools. Read it yourself before asking Claude to work on it.")) : null,
     h("div", { class: "row actions" },
-      jobLink(j) ? h("a", { class: "btn primary", href: jobLink(j), target: "_blank", rel: "noopener noreferrer" }, "Open the posting") : null,
-      h("button", { class: "btn", "aria-pressed": String(j.status === "shortlisted"), onclick: () => toggleShortlist(j) },
+      jobLink(j) ? h("a", { class: "btn primary", href: jobLink(j), target: "_blank", rel: "noopener noreferrer" }, "Open the posting ↗") : null,
+      h("button", { class: "btn pencil", "aria-pressed": String(j.status === "shortlisted"), onclick: () => toggleShortlist(j) },
         j.status === "shortlisted" ? "Shortlisted (undo)" : "Shortlist"),
       h("button", { class: "btn quiet", onclick: () => track(j, "skipped") }, "Skip"),
       h("button", { class: "btn quiet", onclick: () => track(j, "submitted") }, "I applied")),
+    h("dl", { class: "facts" },
+      j.date_posted ? [h("dt", {}, "Posted"), h("dd", {}, day(j.date_posted, true))] : null,
+      j.status ? [h("dt", {}, "Your status"), h("dd", {}, STATUS_TEXT[j.status] || j.status)] : null),
     h("details", { class: "prompts" }, h("summary", { class: "btn quiet" }, "Ask Claude to..."),
       h("div", { class: "prompt-list" },
         h("p", { class: "small muted" }, "Each button copies a request. Paste it into Claude Code in your job-hunter folder."),
         prompts(j).map(([label, text, what]) => h("button", { class: "btn quiet", onclick: () => copy(text, what) }, label)))),
     f.set === "ranked" ? h("div", { class: "section" }, h("h3", {}, "Would you apply?"),
       h("p", { class: "small muted" }, "Your answers teach the ranking what you like (Stats shows how well it matches you)."),
-      h("div", { class: "label-row" }, labelBtn("2", "Yes"), labelBtn("1", "Maybe"), labelBtn("0", "No"))) : null,
+      h("div", { class: "seg", role: "group", "aria-label": "Would you apply?" }, labelBtn("2", "Yes"), labelBtn("1", "Maybe"), labelBtn("0", "No"))) : null,
     why.length ? h("div", { class: "section" }, h("h3", {}, "Your skills it mentions"), h("p", {}, why.join(", "))) : null,
     gaps.length ? h("div", { class: "section" }, h("h3", {}, "Worth knowing"), h("ul", { class: "list-plain" }, gaps.map((g) => h("li", {}, g)))) : null,
     h("div", { class: "section" }, h("h3", {}, "The posting"), h("p", { class: "posting muted", id: "posting" }, "Loading the posting...")),
@@ -539,20 +548,24 @@ async function viewApplications() {
     }, 700);
   };
   const card = (a) => h("li", { class: "app-card" },
-    h("div", { class: "app-main" }, h("b", {}, a.title), h("span", { class: "muted" }, ` at ${a.company}`),
-      h("div", { class: "small muted" }, [a.updated ? `Updated ${day(String(a.updated).slice(0, 10))}` : "", a.source ? `found on ${nameOf(a.source)}` : ""]
-        .filter(Boolean).join(", "))),
+    h("div", {}, h("div", { class: "t" }, a.title), h("div", { class: "co" }, a.company),
+      h("div", { class: "when" }, [a.updated ? `Updated ${day(String(a.updated).slice(0, 10))}` : "", a.source ? `found on ${nameOf(a.source)}` : ""]
+        .filter(Boolean).join(" · "))),
     h("div", { class: "app-actions row" },
       h("label", { class: "visually-hidden", for: `st-${a.id}` }, `Status for ${a.title} at ${a.company}`),
       h("select", { id: `st-${a.id}`, onchange: (e) => save(a, e.target.value) },
         data.statuses.map((s) => h("option", { value: s, selected: s === a.status }, STATUS_TEXT[s] || s))),
       safeUrl(a.employer_url || a.job_url) ? h("a", { href: safeUrl(a.employer_url || a.job_url), target: "_blank", rel: "noopener noreferrer" }, "Posting") : null));
-  const groups = STATUS_ORDER.map((st) => [st, data.applications.filter((a) => a.status === st)]).filter(([, rows]) => rows.length);
+  // left to right, the way a search moves: picked, being prepared, sent, talking, done
+  const LANES = [["Shortlisted", ["shortlisted"]], ["Getting ready", ["tailored", "ready_for_review", "needs_account"]],
+    ["Applied", ["submitted"]], ["Interviewing", ["interviewing"]], ["Offer", ["offer"]], ["Closed", ["rejected", "skipped"]]];
+  const lanes = LANES.map(([name, sts]) => [name, data.applications.filter((a) => sts.includes(a.status))]).filter(([, rows]) => rows.length);
   setMain(
     h("div", { class: "page-head" }, h("h1", {}, "Applications"),
-      h("p", { class: "muted" }, data.applications.length ? `${data.applications.length} jobs you've acted on.` : "")),
-    groups.length ? groups.map(([st, rows]) => h("section", { class: "app-group" }, h("h2", {}, `${STATUS_TEXT[st] || st} (${rows.length})`),
-      h("ul", { class: "app-list" }, rows.map(card))))
+      h("p", {}, data.applications.length ? `${data.applications.length} jobs you've acted on, left to right from picked to done.` : "")),
+    lanes.length ? h("div", { class: "board" }, lanes.map(([name, rows]) => h("section", { class: `lane${name === "Closed" ? " closed" : ""}` },
+      h("h2", {}, name, h("span", { class: "n" }, rows.length)),
+      h("ul", { class: "app-list" }, rows.map(card)))))
       : h("div", { class: "empty" }, h("p", {}, "Nothing tracked yet. Shortlist jobs on the Jobs page and they show up here."),
         h("a", { class: "btn primary", href: "#jobs" }, "Go to jobs")),
     data.waiting.length ? h("div", { class: "section" }, h("h2", {}, "No answer in three weeks"),
@@ -625,7 +638,10 @@ async function viewStats() {
   const rc = s.ranking_check;
   setMain(
     h("div", { class: "page-head" }, h("h1", {}, "How it's going")),
-    o.sent ? h("p", { style: "font-size: var(--t-h3)" }, `${o.sent} applications sent. ${o.responses} heard back (${pct(o.response_rate)}), ${o.interviews} led to interviews (${pct(o.interview_rate)}).`)
+    o.sent ? h("div", { class: "byline", role: "group", "aria-label": `${o.sent} applications sent. ${o.responses} heard back (${pct(o.response_rate)}), ${o.interviews} led to interviews (${pct(o.interview_rate)}).` },
+      h("div", { class: "figure" }, h("span", { class: "kicker" }, "Applications sent"), h("span", { class: "value" }, o.sent)),
+      h("div", { class: "figure" }, h("span", { class: "kicker" }, "Heard back"), h("span", { class: "value" }, o.responses), h("span", { class: "pct" }, pct(o.response_rate))),
+      h("div", { class: "figure" }, h("span", { class: "kicker" }, "Interviews"), h("span", { class: "value" }, o.interviews), h("span", { class: "pct" }, pct(o.interview_rate))))
       : h("div", { class: "empty" }, h("p", {}, "Nothing sent yet. When you mark jobs as applied, response rates show here.")),
     o.sent && o.sent < 20 ? h("p", { class: "notice" }, `With ${o.sent} applications, differences between the groups below are mostly chance.`) : null,
     o.sent ? Object.entries(s.by).map(([k, rows]) => group(`By ${k}`, rows)) : null,
@@ -648,6 +664,7 @@ const SETUP_LABELS = {
 const LEVEL_TEXT = { intern: "Intern", entry: "Entry level", mid: "Mid level", senior: "Senior", manager: "Manager",
   director: "Director", vp: "Vice president", executive: "Executive" };
 const SETUP_PAGES = ["Your resume", "The jobs you want", "Where you'll work", "Pay, skills and companies", "Check and finish"];
+const SETUP_SHORT = ["Resume", "Jobs", "Where", "Pay & skills", "Check"];
 const newSetupState = () => ({ loaded: false, page: 0, answers: {}, resume: null, suggest: null });
 let datalistSeq = 0;
 
@@ -741,6 +758,21 @@ function radioGroup(name, label, choices, current, onChange) {
       h("input", { type: "radio", name, value, checked: current === value, onchange: () => onChange(value) }), text))));
 }
 
+// A file picker that also takes a dropped file. The real <input type=file> stays in the label, so
+// keyboard and screen readers use it as usual.
+function dropzone(input, big, small) {
+  const zone = h("label", { class: "dropzone", for: input.id }, input, h("span", { class: "big" }, big), h("span", { class: "small" }, small));
+  zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault(); zone.classList.remove("over");
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    input.files = e.dataTransfer.files;
+    input.dispatchEvent(new Event("change"));
+  });
+  return zone;
+}
+
 function setupShell(st, title, body, { next = "Continue", onNext, canBack = true } = {}) {
   const errorP = h("p", { class: "error-text", role: "alert" });
   const go = async (delta) => {
@@ -756,7 +788,9 @@ function setupShell(st, title, body, { next = "Continue", onNext, canBack = true
     st.hasProfile && st.page === 0 ? h("div", { class: "notice" },
       h("p", {}, "You already have a search set up, so your current answers are filled in. Change what you like."),
       h("p", {}, "Finishing replaces your search settings (the old ones are kept as profile.yaml.bak).")) : null,
-    h("p", { class: "progress" }, `Step ${st.page + 1} of ${SETUP_PAGES.length}`),
+    h("ol", { class: "rail", "aria-label": `Step ${st.page + 1} of ${SETUP_PAGES.length}` }, SETUP_PAGES.map((name, i) =>
+      h("li", { class: i < st.page ? "done" : i === st.page ? "now" : "", "aria-current": i === st.page ? "step" : null },
+        h("span", { class: "n" }, i < st.page ? "✓" : String(i + 1)), SETUP_SHORT[i] || name))),
     h("h1", {}, title), body, errorP,
     h("div", { class: "row nav" },
       canBack && st.page > 0 ? h("button", { type: "button", class: "btn quiet", onclick: () => go(-1) }, "Back") : null,
@@ -786,7 +820,7 @@ function setupResumePage(st) {
       found.length ? h("p", {}, `Read from it: ${found.join(", ")}. You'll see and can change all of it on the next pages.`)
         : h("p", {}, "Couldn't pick out your jobs from it. You can type them on the next page.")));
   };
-  const file = h("input", { type: "file", id: "q-resume", accept: ".pdf,.docx,.txt,.md" });
+  const file = h("input", { type: "file", id: "q-resume", accept: ".pdf,.docx,.txt,.md", class: "visually-hidden" });
   file.addEventListener("change", async () => {
     const f = file.files && file.files[0];
     if (!f) return;
@@ -801,9 +835,9 @@ function setupResumePage(st) {
   });
   showResume();
   setupShell(st, "Start with your resume", [
-    h("p", {}, "job-hunter reads your job titles, employers, city and skills from it, so you only fill in what's missing."),
-    h("label", { for: "q-resume", class: "field-label" }, r ? "Use a different resume" : "Your resume (PDF, Word or text)"),
-    file, status,
+    h("p", { class: "lede" }, "job-hunter reads your job titles, employers, city and skills from it, so you only fill in what's missing."),
+    dropzone(file, r ? "Use a different resume" : "Drop your resume here", "or click to choose a PDF, Word or text file"),
+    status,
   ], { next: r ? "Continue" : "Continue without a resume" });
 }
 

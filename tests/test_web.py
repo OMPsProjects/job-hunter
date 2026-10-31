@@ -82,7 +82,7 @@ def test_key_only_in_a_private_launcher(ui):
     assert f"127.0.0.1:{ui.app.port}/#k={ui.app.token}" in text
     if os.name == "posix":
         assert (f.stat().st_mode & 0o077) == 0
-    for name in ("app.js", "app.css", "fonts/atkinson-Regular.woff2", "favicon.svg"):
+    for name in ("app.js", "app.css", "fonts/newsreader.woff2", "fonts/instrument-sans.woff2", "favicon.svg"):
         with urllib.request.urlopen(f"{ui.base}/{name}") as r:
             assert r.status == 200
 

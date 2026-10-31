@@ -49,7 +49,7 @@ changes made to it are listed in `jobhunter/vendor/README.md`.
 
 - Occupation data: O*NET 31.0 Database subset, CC BY 4.0 (see `jobhunter/data/README.md`).
 - Careers-site directory: downloaded at run time from the ats-scrapers project (MIT), not bundled.
-- Font: Atkinson Hyperlegible, SIL Open Font License (`jobhunter/web/static/fonts/OFL.txt`).
+- Fonts: Newsreader (Production Type) and Instrument Sans (Instrument), SIL Open Font License 1.1 (`jobhunter/web/static/fonts/Newsreader-OFL.txt`, `InstrumentSans-OFL.txt`), from the Fontsource packages.
 
 ## US city list (jobhunter/data/us_cities.txt)
 

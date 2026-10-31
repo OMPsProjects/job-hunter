@@ -409,8 +409,8 @@ Options for every command: `--profile PATH`, `--out DIR`, `-v`. `job-hunter -h` 
 - Careers-site directory: the [ats-scrapers](https://github.com/kalil0321/ats-scrapers) project's
   public companies directory (MIT).
 - Title model (optional): [TechWolf/JobBERT-v3](https://huggingface.co/TechWolf/JobBERT-v3) (MIT).
-- Typeface for the web page: [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/)
-  by the Braille Institute (SIL Open Font License; `jobhunter/web/static/fonts/OFL.txt`).
+- Typefaces for the web page: [Newsreader](https://github.com/productiontype/Newsreader) and [Instrument Sans](https://github.com/Instrument/instrument-sans)
+  (SIL Open Font License; `jobhunter/web/static/fonts/`).
 - Setup's one-question-per-page flow follows the GOV.UK Design System's
   [question pages](https://design-system.service.gov.uk/patterns/question-pages/) pattern.
 - Job boards: [python-jobspy](https://github.com/speedyapply/JobSpy) (MIT) and each board's API.
